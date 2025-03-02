@@ -1,0 +1,29 @@
+This is an Astro component file. Follow these guidelines:
+
+1. **Content First Approach**
+   - Keep JavaScript to a minimum, using client directives only when necessary
+   - Focus on the HTML structure first
+   - Use static generation wherever possible
+
+2. **Component Structure**
+   - Use the 'client:' directive for interactive elements that need hydration
+   - For drawing components, consider using 'client:only' to avoid server rendering
+   - Implement proper component composition and reusability
+   - Use Astro's component props for data passing
+
+3. **Styling**
+   - Use Tailwind utility classes for styling
+   - Use Astro's scoped styling with <style> tags when needed
+   - Implement responsive design using Tailwind's responsive utilities
+
+4. **Accessibility**
+   - Implement proper semantic HTML structure
+   - Add appropriate ARIA attributes where necessary
+   - Ensure keyboard navigation support for interactive elements
+
+5. **Performance**
+   - Minimize use of client-side JavaScript
+   - Use partial hydration appropriately:
+     - client:load for immediately needed interactivity
+     - client:idle for non-critical interactivity
+     - client:visible for components that should hydrate when visible

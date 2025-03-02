@@ -1,0 +1,31 @@
+This is an Astro API endpoint for the EchoSketch application. Follow these guidelines:
+
+1. **API Design**
+   - Keep endpoints focused on single responsibilities
+   - Follow RESTful principles when appropriate
+   - Use clear, consistent naming conventions
+   - Design with future real-time capabilities in mind
+
+2. **Request Handling**
+   - Validate input data thoroughly using zod or similar
+   - Implement proper error handling and status codes
+   - Consider rate limiting for public endpoints
+   - Use appropriate HTTP methods (GET, POST, PUT, DELETE)
+
+3. **Response Formatting**
+   - Return consistent response formats
+   - Include appropriate status codes
+   - Provide meaningful error messages
+   - Consider pagination for list endpoints
+
+4. **Security**
+   - Implement proper authentication checks where needed
+   - Validate and sanitize all inputs
+   - Protect against common API vulnerabilities
+   - Consider CORS configuration
+
+5. **Performance**
+   - Implement efficient diagram saving/loading
+   - Optimize database queries
+   - Consider caching strategies where appropriate
+   - Implement proper timeout handling

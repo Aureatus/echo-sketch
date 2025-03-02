@@ -1,0 +1,30 @@
+This file handles database operations for EchoSketch using AstroDB with Turso/libsql. Follow these guidelines:
+
+1. **ORM Usage**
+   - Use Drizzle ORM for database interactions
+   - Implement proper schema definitions with appropriate types
+   - Use prepared statements for all database queries
+
+2. **Data Modeling**
+   - Implement efficient diagram state serialization
+   - Design schema for future real-time collaboration
+   - Create appropriate relations between entities
+   - Use proper indexes for efficient retrieval
+
+3. **Performance**
+   - Focus on performance for diagram saving/loading
+   - Optimize queries for minimal data transfer
+   - Consider batching operations when appropriate
+   - Implement caching strategies where beneficial
+
+4. **Error Handling**
+   - Implement proper error handling for database operations
+   - Add validation for input data
+   - Provide meaningful error messages
+   - Consider transaction rollbacks for failed operations
+
+5. **Migration Management**
+   - Plan for schema evolution with proper migrations
+   - Document schema design decisions
+   - Consider backward compatibility when making changes
+   - Use Drizzle's migration tools consistently

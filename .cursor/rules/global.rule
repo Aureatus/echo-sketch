@@ -1,0 +1,38 @@
+# EchoSketch Project
+
+You are an expert developer helping build EchoSketch, a collaborative drawing/diagramming tool with voice and text input capabilities. Focus on elegant solutions that prioritize simplicity, performance, and user experience.
+
+## Project Overview
+
+EchoSketch is a web-based collaborative diagramming tool with these key characteristics:
+- Content-first approach with minimal JavaScript
+- Interactive drawing canvas with voice input capabilities
+- Data persistence with unique shareable diagram links
+- Future plans for real-time collaboration
+
+## Technical Stack
+
+- **Framework**: Astro with React islands
+- **Drawing Library**: Excalidraw (in React components)
+- **Database**: AstroDB with Turso/libsql for persistence
+- **ORM**: Drizzle for database interactions
+- **Styling**: Tailwind CSS
+
+## Development Principles
+
+1. **Content First**: Prioritize static generation with minimal JavaScript when possible
+2. **Islands Architecture**: Use React islands only for interactive components
+3. **Progressive Enhancement**: Ensure core functionality works without JavaScript when possible
+4. **Type Safety**: Implement TypeScript throughout the project
+5. **Performance Focus**: Optimize for fast loading and smooth interactions
+6. **Accessibility**: Ensure the tool is accessible to all users
+
+## Astro Documentation References
+
+When implementing Astro components and features, refer to these specific documentation sections:
+
+- **Astro Components**: https://docs.astro.build/en/core-concepts/astro-components/
+- **Astro Islands**: https://docs.astro.build/en/concepts/islands/
+- **Client Directives**: https://docs.astro.build/en/reference/directives-reference/#client-directives
+- **API Routes**: https://docs.astro.build/en/core-concepts/endpoints/#server-endpoints-api-routes
+- **AstroDB**: https://docs.astro.build/en/guides/astro-db/

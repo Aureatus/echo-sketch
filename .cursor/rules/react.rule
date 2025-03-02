@@ -1,0 +1,30 @@
+This is a React component for the EchoSketch project. Follow these guidelines:
+
+1. **Component Design**
+   - Focus on well-defined component boundaries
+   - Keep state management clean and predictable
+   - Use TypeScript for type safety
+   - Implement proper props interface/type definitions
+
+2. **Drawing Functionality**
+   - Optimize Excalidraw integration for performance
+   - Implement proper serialization for diagram persistence
+   - Consider user experience for drawing interactions
+   - Support voice and text annotation placement
+
+3. **Voice Input**
+   - Implement proper voice input handlers when relevant
+   - Consider user experience for voice annotation
+   - Handle different browser capabilities gracefully
+   - Provide visual indicators for voice recording state
+
+4. **Styling**
+   - Use Tailwind utility classes for styling
+   - Ensure responsive design for various screen sizes
+   - Maintain consistent visual language with the rest of the application
+
+5. **Performance & Future-Proofing**
+   - Optimize for rerendering performance with useMemo and useCallback
+   - Design components with future real-time collaboration in mind
+   - Implement proper error handling and loading states
+   - Consider accessibility for all drawing interactions

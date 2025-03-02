@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "pattern": ".*",
+      "rule": "global.rule"
+    },
+    {
+      "pattern": "src/.*\\.astro$",
+      "rule": "astro.rule"
+    },
+    {
+      "pattern": "src/islands/.*\\.(tsx|jsx)$",
+      "rule": "react.rule"
+    },
+    {
+      "pattern": "src/components/.*\\.(tsx|jsx)$",
+      "rule": "react.rule"
+    },
+    {
+      "pattern": "src/drawing/.*\\.(ts|tsx)$",
+      "rule": "react.rule"
+    },
+    {
+      "pattern": "src/voice/.*\\.(ts|tsx)$",
+      "rule": "react.rule"
+    },
+    {
+      "pattern": "src/db/.*\\.ts$",
+      "rule": "db.rule"
+    },
+    {
+      "pattern": "drizzle/.*\\.ts$",
+      "rule": "db.rule"
+    },
+    {
+      "pattern": "src/pages/api/.*\\.ts$",
+      "rule": "api.rule"
+    }
+  ]
+}
