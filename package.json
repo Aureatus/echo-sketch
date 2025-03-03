@@ -21,8 +21,8 @@
     "@types/react-dom": "^19.0.4",
     "ai": "^4.1.47",
     "astro": "^5.4.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tailwindcss": "^4.0.9"
   },
   "devDependencies": {
