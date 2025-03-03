@@ -13,10 +13,12 @@
     "lint-format": "pnpm run lint:fix && pnpm run format"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.1.17",
     "@astrojs/react": "^4.2.1",
     "@tailwindcss/vite": "^4.0.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "ai": "^4.1.47",
     "astro": "^5.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
