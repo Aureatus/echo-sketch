@@ -15,6 +15,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
     "@astrojs/react": "^4.2.1",
+    "@excalidraw/excalidraw": "^0.17.6",
     "@tailwindcss/vite": "^4.0.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
