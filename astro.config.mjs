@@ -9,6 +9,9 @@ import react from '@astrojs/react';
 export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
+    define: {
+      'process.env': {}, // or specific variables like { NODE_ENV: 'development' }
+    },
   },
 
   integrations: [react()],
