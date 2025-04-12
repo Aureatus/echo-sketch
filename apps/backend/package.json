@@ -2,7 +2,10 @@
   "name": "backend",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "format": "biome format . --write",
+    "lint": "biome lint .",
+    "check": "biome check . --apply"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.1",
