@@ -1,10 +1,14 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 
-const app = new Hono().use(cors()).get("/", (c) => {
-	return c.text("Hello Hono!");
-});
+const app = new Hono()
+	.use(compress())
+	.use(cors())
+	.get("/", (c) => {
+		return c.text("Hello Hono!");
+	});
 
 serve(
 	{
