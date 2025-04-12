@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    /* Base Settings */
+    "strict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "moduleResolution": "bundler",
+
+    /* Defaults (can be overridden) */
+    "target": "ESNext", // Default to latest, can be overridden by individual tsconfigs
+    "module": "ESNext" // Default to latest, can be overridden by individual tsconfigs
+  },
+  "exclude": ["node_modules", "dist"]
+}
