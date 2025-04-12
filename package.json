@@ -12,5 +12,9 @@
     "turbo": "^2.5.0"
   },
   "packageManager": "pnpm@8.15.6",
-  "name": "with-vite"
+  "name": "with-vite",
+  "dependencies": {
+    "hono": "^4.7.6",
+    "zod": "^3.24.2"
+  }
 }

@@ -1,25 +1,10 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
+import { cors } from "hono/cors";
 
-const app = new Hono();
-
-app.get("/", (c) => {
+const app = new Hono().use(cors()).get("/", (c) => {
 	return c.text("Hello Hono!");
-}).post(
-	'/testing',
-	zValidator(
-	  'form',
-	  z.object({
-		body: z.string(),
-	  })
-	),
-	(c) => {
-	  const validated = c.req.valid('form')
-	  return c.json(validated)
-	}
-  )
+});
 
 serve(
 	{
@@ -30,3 +15,5 @@ serve(
 		console.log(`Server is running on http://localhost:${info.port}`);
 	},
 );
+
+export type AppType = typeof app;

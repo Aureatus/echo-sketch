@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      hono:
+        specifier: ^4.7.6
+        version: 4.7.6
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -20,9 +27,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.14.1
         version: 1.14.1(hono@4.7.6)
-      hono:
-        specifier: ^4.7.6
-        version: 4.7.6
+      '@hono/zod-validator':
+        specifier: ^0.4.3
+        version: 0.4.3(hono@4.7.6)(zod@3.24.2)
     devDependencies:
       '@types/node':
         specifier: ^20.11.17
@@ -745,6 +752,16 @@ packages:
       hono: ^4
     dependencies:
       hono: 4.7.6
+    dev: false
+
+  /@hono/zod-validator@0.4.3(hono@4.7.6)(zod@3.24.2):
+    resolution: {integrity: sha512-xIgMYXDyJ4Hj6ekm9T9Y27s080Nl9NXHcJkOvkXPhubOLj8hZkOL8pDnnXfvCf5xEE8Q4oMFenQUZZREUY2gqQ==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.19.1
+    dependencies:
+      hono: 4.7.6
+      zod: 3.24.2
     dev: false
 
   /@humanwhocodes/config-array@0.11.14:
