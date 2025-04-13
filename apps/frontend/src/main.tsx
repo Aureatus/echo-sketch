@@ -7,10 +7,10 @@ import ReactDOM from "react-dom/client";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
-import DefaultError from "./components/DefaultError";
-import DefaultLoading from "./components/DefaultLoading";
-import { PersistGate } from "./components/PersistGate";
-import { ThemeProvider } from "./components/ThemeProvider";
+import DefaultError from "./components/common/DefaultError";
+import DefaultLoading from "./components/common/DefaultLoading";
+import { PersistGate } from "./components/providers/PersistGate";
+import { ThemeProvider } from "./components/providers/ThemeProvider";
 import { createIDBPersister } from "./lib/persister";
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
