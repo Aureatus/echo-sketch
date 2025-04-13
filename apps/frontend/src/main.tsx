@@ -7,6 +7,7 @@ import ReactDOM from "react-dom/client";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
+import { Toaster } from "@/components/ui/sonner";
 import DefaultError from "./components/common/DefaultError";
 import DefaultLoading from "./components/common/DefaultLoading";
 import { PersistGate } from "./components/providers/PersistGate";
@@ -70,6 +71,7 @@ if (rootElement && !rootElement.innerHTML) {
 						<RouterProvider router={router} />
 					</PersistGate>
 				</PersistQueryClientProvider>
+				<Toaster richColors position="top-right" />
 			</ThemeProvider>
 		</StrictMode>,
 	);

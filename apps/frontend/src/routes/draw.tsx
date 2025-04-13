@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
@@ -19,6 +20,7 @@ function DrawRouteComponent() {
 	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
+	const [mermaidCode, setMermaidCode] = useState<string>("");
 
 	const handleDiagramGenerated = async (code: string) => {
 		console.log("Received Mermaid code:", code);
@@ -35,8 +37,20 @@ function DrawRouteComponent() {
 			api.resetScene();
 			api.updateScene({ elements: excalidrawElements });
 			api.scrollToContent(excalidrawElements, { fitToContent: true });
+			setMermaidCode(code);
+			setIsModalOpen(false);
 		} catch (error) {
-			console.error("Failed to parse Mermaid to Excalidraw:", error);
+			console.error(
+				"Failed to parse Mermaid code received from backend:",
+				error,
+			);
+			console.error("--- Failing Mermaid Code ---");
+			console.error(code);
+			console.error("--- End Failing Mermaid Code ---");
+			toast.error("Diagram Generation Error", {
+				description:
+					"Failed to parse the generated diagram. The AI might have produced invalid code. Please try again.",
+			});
 		}
 	};
 
@@ -48,9 +62,12 @@ function DrawRouteComponent() {
 				}}
 				theme={resolvedTheme}
 				renderTopRightUI={() => {
+					const buttonText = mermaidCode
+						? "Update Diagram"
+						: "Generate Diagram";
 					return (
 						<Button onClick={() => setIsModalOpen(true)} className="mr-2">
-							Generate Diagram
+							{buttonText}
 						</Button>
 					);
 				}}
@@ -59,6 +76,7 @@ function DrawRouteComponent() {
 				open={isModalOpen}
 				onOpenChange={setIsModalOpen}
 				onDiagramGenerated={handleDiagramGenerated}
+				existingDiagramCode={mermaidCode}
 			/>
 		</div>
 	);

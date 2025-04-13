@@ -17,6 +17,7 @@ mermaid.initialize({});
 
 const drawSchema = z.object({
 	instruction: z.string().min(1, { message: "Instruction cannot be empty" }),
+	existingDiagramCode: z.string().optional(),
 });
 
 const app = new Hono()
@@ -28,7 +29,7 @@ const app = new Hono()
 	})
 	.post("/draw", zValidator("json", drawSchema), async (c) => {
 		try {
-			const { instruction } = c.req.valid("json");
+			const { instruction, existingDiagramCode } = c.req.valid("json");
 
 			const google = createGoogleGenerativeAI({
 				apiKey: process.env.GOOGLE_API_KEY,
@@ -36,10 +37,23 @@ const app = new Hono()
 
 			const model = google("gemini-2.0-flash-exp");
 
+			// Constant system prompt for AI context
+			const systemPrompt = `You are an expert in Mermaid diagrams. Generate ONLY the Mermaid code block based on the user's instruction. Do not include any explanations, comments, or surrounding text like \`\`\`mermaid ... \`\`\`. Just output the raw Mermaid syntax. Pay close attention to the user's specific request, whether it's generating a new diagram or updating an existing one.`;
+
+			// Construct the user prompt based on whether existingDiagramCode is present
+			let userPrompt = instruction;
+			if (existingDiagramCode) {
+				userPrompt = `Update the following Mermaid diagram code:
+\`\`\`mermaid
+${existingDiagramCode}
+\`\`\`
+to match the new instruction: ${instruction}`;
+			}
+
 			const { text } = await generateText({
 				model,
-				system: `You are an expert in Mermaid diagrams. Generate ONLY the Mermaid code block based on the user's instruction. Do not include any explanations, comments, or surrounding text like \`\`\`mermaid ... \`\`\`. Just output the raw Mermaid syntax.`,
-				prompt: instruction,
+				system: systemPrompt,
+				prompt: userPrompt,
 			});
 
 			const cleanText = text
@@ -48,16 +62,10 @@ const app = new Hono()
 				.replace(/```$/, "")
 				.trim();
 
-			// Validate the generated Mermaid syntax
-			try {
-				await mermaid.parse(cleanText);
-				console.log("Generated Mermaid validated successfully:", cleanText);
-				return c.text(cleanText);
-			} catch (parseError) {
-				console.error("Invalid Mermaid syntax generated:", parseError);
-				console.error("--- Invalid Code ---:", cleanText);
-				return c.json({ error: "AI generated invalid Mermaid syntax." }, 500);
-			}
+			// Remove the validation block as mermaid.parse() relies on browser DOM APIs
+			// Directly return the cleaned text
+			console.log("Generated Mermaid (validation skipped):", cleanText);
+			return c.text(cleanText);
 		} catch (error) {
 			console.error("Error generating diagram:", error);
 			const errorMessage =

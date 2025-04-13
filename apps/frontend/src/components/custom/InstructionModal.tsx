@@ -17,12 +17,14 @@ interface InstructionModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDiagramGenerated: (mermaidCode: string) => void;
+	existingDiagramCode?: string;
 }
 
 export function InstructionModal({
 	open,
 	onOpenChange,
 	onDiagramGenerated,
+	existingDiagramCode,
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
 
@@ -30,29 +32,46 @@ export function InstructionModal({
 		mutationFn: drawMutationFn,
 		onSuccess: (data) => {
 			onDiagramGenerated(data);
-			onOpenChange(false);
-			setInstruction("");
 		},
 		onError: (error) => {
 			console.error("Mutation Error:", error);
-			alert(`Error: ${error.message}`);
+			alert(`Error generating/updating diagram: ${error.message}`);
 		},
 	});
 
 	const handleSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
-		if (!instruction.trim()) return;
-		drawMutation.mutate({ instruction });
+		const trimmedInstruction = instruction.trim();
+		if (!trimmedInstruction) return;
+
+		drawMutation.mutate({
+			instruction: trimmedInstruction,
+			existingDiagramCode,
+		});
 	};
+
+	const isUpdate = !!existingDiagramCode;
+	const titleText = isUpdate ? "Update Diagram" : "Generate Diagram";
+	const descriptionText = isUpdate
+		? "Enter instructions to modify the existing diagram."
+		: "Enter instructions for the diagram you want to generate.";
+	const buttonText = drawMutation.isPending
+		? isUpdate
+			? "Updating..."
+			: "Generating..."
+		: isUpdate
+			? "Update Diagram"
+			: "Generate Diagram";
+	const placeholderText = isUpdate
+		? "e.g., Change NodeA to TaskA"
+		: "e.g., Sequence diagram for login flow";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
-					<DialogTitle>Generate Diagram</DialogTitle>
-					<DialogDescription>
-						Enter instructions for the diagram you want to generate.
-					</DialogDescription>
+					<DialogTitle>{titleText}</DialogTitle>
+					<DialogDescription>{descriptionText}</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit}>
 					<div className="grid gap-4 py-4">
@@ -65,13 +84,13 @@ export function InstructionModal({
 								value={instruction}
 								onChange={(e) => setInstruction(e.target.value)}
 								className="col-span-3"
-								placeholder="e.g., Sequence diagram for login flow"
+								placeholder={placeholderText}
 							/>
 						</div>
 					</div>
 					<DialogFooter>
 						<Button type="submit" disabled={drawMutation.isPending}>
-							{drawMutation.isPending ? "Generating..." : "Generate"}
+							{buttonText}
 						</Button>
 					</DialogFooter>
 				</form>

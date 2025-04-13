@@ -4,6 +4,7 @@ import { client } from "./rpc-client";
 // Define the mutation payload type
 export interface DrawMutationPayload {
 	instruction: string;
+	existingDiagramCode?: string;
 }
 
 export const indexQueryOptions = queryOptions({
