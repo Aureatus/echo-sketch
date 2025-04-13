@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Moon, Sun } from "lucide-react";
 
-import { useTheme } from "@/components/providers/ThemeProvider";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 
 export default function Header() {
