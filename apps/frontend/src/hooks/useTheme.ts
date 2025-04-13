@@ -6,12 +6,14 @@ export type Theme = "dark" | "light" | "system";
 export type ThemeProviderState = {
 	theme: Theme;
 	setTheme: (theme: Theme) => void;
+	resolvedTheme: "light" | "dark";
 };
 
 // Initial state for the context
 const initialState: ThemeProviderState = {
 	theme: "system",
 	setTheme: () => null,
+	resolvedTheme: "light",
 };
 
 // Context definition (needs to be exported for ThemeProvider)
