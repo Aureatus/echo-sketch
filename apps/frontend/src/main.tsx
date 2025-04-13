@@ -6,6 +6,8 @@ import ReactDOM from "react-dom/client";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
+import DefaultError from "./components/DefaultError";
+import DefaultLoading from "./components/DefaultLoading";
 import { ThemeProvider } from "./components/ThemeProvider";
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
@@ -20,6 +22,8 @@ const router = createRouter({
 		queryClient,
 	},
 	defaultPreload: "intent",
+	defaultPendingComponent: DefaultLoading,
+	defaultErrorComponent: DefaultError,
 	scrollRestoration: true,
 	defaultStructuralSharing: true,
 	defaultPreloadStaleTime: 0,
