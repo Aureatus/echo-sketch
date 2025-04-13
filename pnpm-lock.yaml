@@ -52,6 +52,9 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.66.5
         version: 5.73.3(@tanstack/react-query@5.73.3)(react@19.1.0)
+      '@tanstack/react-query-persist-client':
+        specifier: ^5.73.3
+        version: 5.73.3(@tanstack/react-query@5.73.3)(react@19.1.0)
       '@tanstack/react-router':
         specifier: ^1.114.3
         version: 1.115.3(react-dom@19.1.0)(react@19.1.0)
@@ -67,6 +70,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      idb-keyval:
+        specifier: ^6.2.1
+        version: 6.2.1
       lucide-react:
         specifier: ^0.476.0
         version: 0.476.0(react@19.1.0)
@@ -1009,6 +1015,12 @@ packages:
     resolution: {integrity: sha512-hBQyYwsOuO7QOprK75NzfrWs/EQYjgFA0yykmcvsV62q0t6Ua97CU3sYgjHx0ZvxkXSOMkY24VRJ5uv9f5Ik4w==}
     dev: false
 
+  /@tanstack/query-persist-client-core@5.73.3:
+    resolution: {integrity: sha512-5lCHpcBSofGgV0iXqV6WWDt2l0VvnPmjhWrS7sKDKdbZfryfdbY6iCMDmzIcqxo9Rwvk0FZp239SG2mRD3rWkw==}
+    dependencies:
+      '@tanstack/query-core': 5.73.3
+    dev: false
+
   /@tanstack/react-query-devtools@5.73.3(@tanstack/react-query@5.73.3)(react@19.1.0):
     resolution: {integrity: sha512-5YizhmYep/A9h5Z+aApHZd0rwNH3FQm6JzUQmdH+f8aG5joi2cRAq+3UakDH6wst2kysReEmW4n7PaMxfCEtRQ==}
     peerDependencies:
@@ -1016,6 +1028,17 @@ packages:
       react: ^18 || ^19
     dependencies:
       '@tanstack/query-devtools': 5.73.3
+      '@tanstack/react-query': 5.73.3(react@19.1.0)
+      react: 19.1.0
+    dev: false
+
+  /@tanstack/react-query-persist-client@5.73.3(@tanstack/react-query@5.73.3)(react@19.1.0):
+    resolution: {integrity: sha512-O2CJloSyvIDZHWV5deBDgkb5Nn63RhMhiY7K+xUjxpzg8pxvBRtKLQaI897NojPFMLKiWjYzO3Rr8YSKcV7i/w==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.73.3
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-persist-client-core': 5.73.3
       '@tanstack/react-query': 5.73.3(react@19.1.0)
       react: 19.1.0
     dev: false
@@ -1843,6 +1866,10 @@ packages:
     dependencies:
       safer-buffer: 2.1.2
     dev: true
+
+  /idb-keyval@6.2.1:
+    resolution: {integrity: sha512-8Sb3veuYCyrZL+VBt9LJfZjLUPWVvqn8tG28VqYNFCo43KHcKuq+b4EiXGeuaLAQWL2YmyDgMp2aSpH9JHsEQg==}
+    dev: false
 
   /is-binary-path@2.1.0:
     resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
