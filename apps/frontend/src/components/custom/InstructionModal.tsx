@@ -10,8 +10,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-import { drawMutationFn } from "../../lib/queries";
+import { Mic, RotateCcw, Square } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { drawMutationFn, transcribeMutationFn } from "../../lib/queries";
 
 interface InstructionModalProps {
 	open: boolean;
@@ -27,22 +29,148 @@ export function InstructionModal({
 	existingDiagramCode,
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
+	const [isRecording, setIsRecording] = useState(false);
+	const [isTranscribing, setIsTranscribing] = useState(false);
+	const [drawTriggeredByVoice, setDrawTriggeredByVoice] = useState(false);
+	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+	const audioChunksRef = useRef<Blob[]>([]);
 
 	const drawMutation = useMutation({
 		mutationFn: drawMutationFn,
 		onSuccess: (data) => {
 			onDiagramGenerated(data);
+			setInstruction("");
 		},
 		onError: (error) => {
-			console.error("Mutation Error:", error);
-			alert(`Error generating/updating diagram: ${error.message}`);
+			console.error("Draw Mutation Error:", error);
+			toast.error("Diagram Generation Failed", {
+				description: error.message,
+			});
+		},
+		onSettled: () => {
+			setDrawTriggeredByVoice(false); // Reset voice trigger flag
 		},
 	});
 
+	const transcribeMutation = useMutation({
+		mutationFn: transcribeMutationFn,
+		onMutate: () => {
+			setIsTranscribing(true);
+			setInstruction("Transcribing..."); // Placeholder while transcribing
+		},
+		onSuccess: (transcribedText) => {
+			console.log("Transcription Result:", transcribedText);
+			toast.success("Transcription successful! Generating diagram...");
+			setInstruction(""); // Clear the input field
+			setDrawTriggeredByVoice(true); // Set flag for loading message
+			// Directly trigger the draw mutation
+			drawMutation.mutate({
+				instruction: transcribedText,
+				existingDiagramCode, // Pass existing code if present
+			});
+		},
+		onError: (error: Error) => {
+			console.error("Transcription Mutation Error:", error);
+			toast.error("Transcription Failed", {
+				description: `Failed to transcribe audio: ${error.message}`,
+			});
+			setInstruction(""); // Clear input on error
+		},
+		onSettled: () => {
+			setIsTranscribing(false);
+			setIsRecording(false);
+			mediaRecorderRef.current = null;
+			audioChunksRef.current = [];
+		},
+	});
+
+	const handleMicClick = async () => {
+		if (isRecording) {
+			mediaRecorderRef.current?.stop();
+		} else {
+			if (!navigator.mediaDevices?.getUserMedia) {
+				toast.error("Audio Recording Not Supported", {
+					description: "Your browser does not support audio recording.",
+				});
+				return;
+			}
+
+			try {
+				const stream = await navigator.mediaDevices.getUserMedia({
+					audio: true,
+				});
+				mediaRecorderRef.current = new MediaRecorder(stream);
+				audioChunksRef.current = [];
+
+				mediaRecorderRef.current.ondataavailable = (event) => {
+					if (event.data.size > 0) {
+						audioChunksRef.current.push(event.data);
+					}
+				};
+
+				mediaRecorderRef.current.onstop = () => {
+					const audioBlob = new Blob(audioChunksRef.current, {
+						type: "audio/webm",
+					});
+					transcribeMutation.mutate(audioBlob);
+
+					// Stop mic access tracks
+					for (const track of stream.getTracks()) {
+						track.stop();
+					}
+				};
+
+				mediaRecorderRef.current.start();
+				setIsRecording(true);
+				setInstruction("Recording...");
+				toast.info("Recording started...");
+			} catch (err) {
+				let message =
+					"An unknown error occurred while accessing the microphone.";
+				if (err instanceof Error) {
+					if (
+						err.name === "NotAllowedError" ||
+						err.name === "PermissionDeniedError"
+					) {
+						message =
+							"Microphone access denied. Please allow microphone permissions in your browser settings.";
+					} else if (
+						err.name === "NotFoundError" ||
+						err.name === "DevicesNotFoundError"
+					) {
+						message =
+							"No microphone found. Please ensure a microphone is connected and enabled.";
+					} else {
+						message = `Error accessing microphone: ${err.message}`;
+					}
+				}
+				console.error("Error accessing microphone:", err);
+				toast.error("Microphone Error", {
+					description: message,
+				});
+			}
+		}
+	};
+
+	const handleReset = () => {
+		if (mediaRecorderRef.current && isRecording) {
+			mediaRecorderRef.current.onstop = null;
+			mediaRecorderRef.current.stop();
+		}
+		audioChunksRef.current = [];
+		setIsRecording(false);
+		setIsTranscribing(false);
+		setInstruction("");
+		setDrawTriggeredByVoice(false); // Also reset voice trigger
+		// Reset UI state
+	};
+
 	const handleSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
+		if (isRecording || isTranscribing) return;
+
 		const trimmedInstruction = instruction.trim();
-		if (!trimmedInstruction) return;
+		if (!trimmedInstruction || trimmedInstruction === "Recording...") return;
 
 		drawMutation.mutate({
 			instruction: trimmedInstruction,
@@ -50,12 +178,14 @@ export function InstructionModal({
 		});
 	};
 
+	const isBusy = isRecording || isTranscribing || drawMutation.isPending;
+
 	const isUpdate = !!existingDiagramCode;
 	const titleText = isUpdate ? "Update Diagram" : "Generate Diagram";
 	const descriptionText = isUpdate
-		? "Enter instructions to modify the existing diagram."
-		: "Enter instructions for the diagram you want to generate.";
-	const buttonText = drawMutation.isPending
+		? "Enter instructions or use the mic to modify the diagram."
+		: "Enter instructions or use the mic for the diagram.";
+	const submitButtonText = drawMutation.isPending
 		? isUpdate
 			? "Updating..."
 			: "Generating..."
@@ -73,24 +203,62 @@ export function InstructionModal({
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={handleSubmit}>
-					<div className="grid gap-4 py-4">
-						<div className="grid grid-cols-4 items-center gap-4">
-							<Label htmlFor="instruction" className="text-right">
-								Instruction
-							</Label>
+				<form onSubmit={handleSubmit} className="space-y-4">
+					<div className="grid grid-cols-5 items-end gap-2">
+						<div className="grid w-full items-center gap-1.5 col-span-3">
+							<Label htmlFor="instruction">Instructions</Label>
 							<Input
 								id="instruction"
 								value={instruction}
 								onChange={(e) => setInstruction(e.target.value)}
-								className="col-span-3"
+								className=""
 								placeholder={placeholderText}
+								disabled={isRecording || isTranscribing}
 							/>
 						</div>
+						<div className="col-span-1 flex justify-center">
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								onClick={handleMicClick}
+								disabled={isTranscribing}
+								className={isRecording ? "animate-pulse border-red-500" : ""}
+								aria-label={isRecording ? "Stop recording" : "Start recording"}
+							>
+								{isRecording ? (
+									<Square className="h-4 w-4 text-red-500 fill-red-500" />
+								) : (
+									<Mic className="h-4 w-4" />
+								)}
+							</Button>
+						</div>
+						<div className="col-span-1 flex justify-center">
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								onClick={handleReset}
+								disabled={!isRecording && !isTranscribing}
+								aria-label="Reset recording"
+							>
+								<RotateCcw className="h-4 w-4" />
+							</Button>
+						</div>
 					</div>
+					{isTranscribing && (
+						<p className="text-sm text-muted-foreground text-center col-span-full">
+							Transcribing audio...
+						</p>
+					)}
+					{drawTriggeredByVoice && drawMutation.isPending && (
+						<p className="text-sm text-muted-foreground text-center col-span-full">
+							Generating diagram from audio...
+						</p>
+					)}
 					<DialogFooter>
-						<Button type="submit" disabled={drawMutation.isPending}>
-							{buttonText}
+						<Button type="submit" disabled={isBusy}>
+							{submitButtonText}
 						</Button>
 					</DialogFooter>
 				</form>
