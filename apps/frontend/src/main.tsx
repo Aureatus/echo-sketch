@@ -1,8 +1,7 @@
-import { QueryClient, useIsRestoring } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
-import type { ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 
 // Import the generated route tree
@@ -10,6 +9,7 @@ import { routeTree } from "./routeTree.gen";
 
 import DefaultError from "./components/DefaultError";
 import DefaultLoading from "./components/DefaultLoading";
+import { PersistGate } from "./components/PersistGate";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { createIDBPersister } from "./lib/persister";
 import "./styles.css";
@@ -26,16 +26,6 @@ const queryClient = new QueryClient({
 });
 
 const persister = createIDBPersister();
-
-function PersistGate({ children }: { children: ReactNode }) {
-	const isRestoring = useIsRestoring();
-
-	if (isRestoring) {
-		return null;
-	}
-
-	return children;
-}
 
 // Create a new router instance
 const router = createRouter({
