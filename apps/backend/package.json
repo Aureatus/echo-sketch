@@ -8,8 +8,12 @@
     "check": "biome check . --apply"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.10",
+    "@google/generative-ai": "^0.24.0",
     "@hono/node-server": "^1.14.1",
-    "@hono/zod-validator": "^0.4.3"
+    "@hono/zod-validator": "^0.4.3",
+    "dotenv": "^16.5.0",
+    "mermaid": "^11.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
