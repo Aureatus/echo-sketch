@@ -1,12 +1,12 @@
-import { Buffer } from "node:buffer"; // Import Buffer for Base64 conversion
+/// <reference path="../../../sst-env.d.ts" />
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { serve } from "@hono/node-server";
 import { zValidator } from "@hono/zod-validator";
-import { generateText, streamText } from "ai";
+import { generateText } from "ai";
 import { Hono } from "hono";
-import { compress } from "hono/compress";
-import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { Resource } from "sst";
+
+import { handle } from "hono/aws-lambda";
 // import mermaid from "mermaid"; // Mermaid seems unused now, commenting out
 import { z } from "zod";
 
@@ -29,8 +29,6 @@ const transcribeSchema = z.object({
 });
 
 const app = new Hono()
-	.use(compress())
-	.use(cors())
 	.use(logger())
 	.get("/", (c) => {
 		return c.text("Hello Hono!");
@@ -41,7 +39,7 @@ const app = new Hono()
 
 			// Instantiate client and model inside handler again
 			const google = createGoogleGenerativeAI({
-				apiKey: process.env.GOOGLE_API_KEY,
+				apiKey: Resource.GeminiAPIKey.value,
 			});
 			const model = google("gemini-2.0-flash-exp"); // Use appropriate model name
 
@@ -94,14 +92,12 @@ const app = new Hono()
 
 			// Instantiate client and model inside handler
 			const google = createGoogleGenerativeAI({
-				apiKey: process.env.GOOGLE_API_KEY,
+				apiKey: Resource.GeminiAPIKey.value,
 			});
-			const transcribeModel = google("gemini-1.5-flash-latest"); // Use appropriate model name
+			const transcribeModel = google("gemini-2.0-flash-exp"); // Use appropriate model name
 
 			// Prepare multimodal content array
 			const multimodalContent = [
-				{ type: "text", text: "Transcribe the following audio:" },
-				// Use 'file' type and 'data' field with the raw ArrayBuffer
 				{
 					type: "file",
 					data: audioBuffer,
@@ -109,23 +105,17 @@ const app = new Hono()
 				},
 			];
 
-			// Prepare prompt for Gemini multimodal input using streamText
-			const { textStream } = await streamText({
+			// Pass only the audio file to Gemini for transcription
+			const { text: transcriptionResult } = await generateText({
 				model: transcribeModel, // Use the model defined for transcription
 				messages: [
 					{
 						role: "user",
-						// biome-ignore lint/suspicious/noExplicitAny: Bypassing TS error likely due to incorrect SDK types for multimodal message content.
+						// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 						content: multimodalContent as any,
 					},
 				],
 			});
-
-			// Consume the stream to get the full text
-			let transcriptionResult = "";
-			for await (const delta of textStream) {
-				transcriptionResult += delta;
-			}
 
 			console.log("Transcription result:", transcriptionResult);
 			return c.text(transcriptionResult.trim());
@@ -145,14 +135,6 @@ const app = new Hono()
 	});
 // --- End Transcription Route ---
 
-serve(
-	{
-		fetch: app.fetch,
-		port: 3001,
-	},
-	(info) => {
-		console.log(`Server is running on http://localhost:${info.port}`);
-	},
-);
+export const handler = handle(app);
 
 export type AppType = typeof app;

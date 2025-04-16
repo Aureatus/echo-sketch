@@ -3,9 +3,13 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "biome lint .",
+    "fix": "biome check . --write",
     "format": "biome format . --write",
-    "fix": "biome check . --write"
+    "lint": "biome lint .",
+    "sso": "aws sso login --sso-session=alextknott",
+    "sst:dev": "sst dev",
+    "sst:deploy:prod": "sst deploy --stage production",
+    "sst:refresh": "sst refresh"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -17,6 +21,7 @@
     "@excalidraw/excalidraw": "^0.18.0",
     "ai": "^4.3.5",
     "hono": "^4.7.6",
+    "sst": "3.13.10",
     "zod": "^3.24.2"
   }
 }
