@@ -12,7 +12,7 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (
-		<div className="flex flex-col h-full">
+		<div className="flex flex-col h-screen">
 			<Header />
 			<div className="flex-grow">
 				<Outlet />
