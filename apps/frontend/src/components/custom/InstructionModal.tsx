@@ -13,7 +13,38 @@ import { useMutation } from "@tanstack/react-query";
 import { Mic, RotateCcw, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { drawMutationFn, transcribeMutationFn } from "../../lib/queries";
+import { drawMutationFn } from "../../lib/queries";
+
+import { client } from "../../lib/rpc-client";
+
+// Helper for voice-to-diagram API using rpc-client
+async function voiceToDiagramMutationFn(audioBlob: Blob): Promise<string> {
+	// Convert Blob to File for the backend validator
+	const audioFile = new File([audioBlob], "recording.webm", {
+		type: audioBlob.type || "audio/webm",
+		lastModified: Date.now(),
+	});
+	const res = await client["voice-to-diagram"].$post({
+		form: { audio: audioFile },
+	});
+	if (!res.ok) {
+		let errorMessage = "Failed to fetch from /voice-to-diagram (RPC)";
+		try {
+			const errorData = await res.json();
+			if (errorData && typeof errorData === "object" && "error" in errorData) {
+				errorMessage = String(errorData.error);
+			} else {
+				const textError = await res.text();
+				errorMessage = textError || errorMessage;
+			}
+		} catch (e) {
+			const textError = await res.text();
+			errorMessage = textError || errorMessage;
+		}
+		throw new Error(errorMessage);
+	}
+	return res.text();
+}
 
 interface InstructionModalProps {
 	open: boolean;
@@ -31,7 +62,8 @@ export function InstructionModal({
 	const [instruction, setInstruction] = useState("");
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
-	const [drawTriggeredByVoice, setDrawTriggeredByVoice] = useState(false);
+	// Remove drawTriggeredByVoice, not needed in new flow
+	// const [drawTriggeredByVoice, setDrawTriggeredByVoice] = useState(false);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const audioChunksRef = useRef<Blob[]>([]);
 
@@ -48,33 +80,28 @@ export function InstructionModal({
 			});
 		},
 		onSettled: () => {
-			setDrawTriggeredByVoice(false); // Reset voice trigger flag
+			setIsTranscribing(false); // Reset voice trigger flag
 		},
 	});
 
-	const transcribeMutation = useMutation({
-		mutationFn: transcribeMutationFn,
+	const voiceToDiagramMutation = useMutation({
+		mutationFn: voiceToDiagramMutationFn,
 		onMutate: () => {
 			setIsTranscribing(true);
-			setInstruction("Transcribing..."); // Placeholder while transcribing
+			setInstruction("Processing audio...");
 		},
-		onSuccess: (transcribedText) => {
-			console.log("Transcription Result:", transcribedText);
-			toast.success("Transcription successful! Generating diagram...");
-			setInstruction(""); // Clear the input field
-			setDrawTriggeredByVoice(true); // Set flag for loading message
-			// Directly trigger the draw mutation
-			drawMutation.mutate({
-				instruction: transcribedText,
-				existingDiagramCode, // Pass existing code if present
-			});
+		onSuccess: (diagramCode) => {
+			console.log("Voice-to-diagram result:", diagramCode);
+			toast.success("Diagram generated from voice!");
+			setInstruction("");
+			onDiagramGenerated(diagramCode);
 		},
 		onError: (error: Error) => {
-			console.error("Transcription Mutation Error:", error);
-			toast.error("Transcription Failed", {
-				description: `Failed to transcribe audio: ${error.message}`,
+			console.error("Voice-to-Diagram Mutation Error:", error);
+			toast.error("Voice-to-Diagram Failed", {
+				description: error.message,
 			});
-			setInstruction(""); // Clear input on error
+			setInstruction("");
 		},
 		onSettled: () => {
 			setIsTranscribing(false);
@@ -112,7 +139,7 @@ export function InstructionModal({
 					const audioBlob = new Blob(audioChunksRef.current, {
 						type: "audio/webm",
 					});
-					transcribeMutation.mutate(audioBlob);
+					voiceToDiagramMutation.mutate(audioBlob);
 
 					// Stop mic access tracks
 					for (const track of stream.getTracks()) {
@@ -161,7 +188,6 @@ export function InstructionModal({
 		setIsRecording(false);
 		setIsTranscribing(false);
 		setInstruction("");
-		setDrawTriggeredByVoice(false); // Also reset voice trigger
 		// Reset UI state
 	};
 
@@ -178,7 +204,11 @@ export function InstructionModal({
 		});
 	};
 
-	const isBusy = isRecording || isTranscribing || drawMutation.isPending;
+	const isBusy =
+		isRecording ||
+		isTranscribing ||
+		drawMutation.isPending ||
+		voiceToDiagramMutation.isPending;
 
 	const isUpdate = !!existingDiagramCode;
 	const titleText = isUpdate ? "Update Diagram" : "Generate Diagram";
@@ -247,11 +277,6 @@ export function InstructionModal({
 						</div>
 					</div>
 					{isTranscribing && (
-						<p className="text-sm text-muted-foreground text-center col-span-full">
-							Transcribing audio...
-						</p>
-					)}
-					{drawTriggeredByVoice && drawMutation.isPending && (
 						<p className="text-sm text-muted-foreground text-center col-span-full">
 							Generating diagram from audio...
 						</p>

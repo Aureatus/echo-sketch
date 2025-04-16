@@ -132,8 +132,78 @@ const app = new Hono()
 				error instanceof Error ? error.message : "Unknown error";
 			return c.json({ error: `Transcription failed: ${errorMessage}` }, 500);
 		}
-	});
-// --- End Transcription Route ---
+	})
+	// --- End Transcription Route ---
+
+	// --- Combined Voice-to-Diagram Route ---
+	.post(
+		"/voice-to-diagram",
+		zValidator("form", transcribeSchema),
+		async (c) => {
+			try {
+				// Step 1: Transcribe audio (reuse logic from /transcribe)
+				const { audio: audioFile } = c.req.valid("form");
+				const audioBuffer = await audioFile.arrayBuffer();
+				const google = createGoogleGenerativeAI({
+					apiKey: Resource.GeminiAPIKey.value,
+				});
+				const transcribeModel = google("gemini-2.0-flash-exp");
+				const multimodalContent = [
+					{
+						type: "file",
+						data: audioBuffer,
+						mimeType: audioFile.type || "audio/webm",
+					},
+				];
+				const { text: transcriptionResult } = await generateText({
+					model: transcribeModel,
+					system:
+						"You are a speech-to-text transcription engine. Only transcribe the audio exactly as spoken, with no additional commentary, questions, or explanations.",
+					messages: [
+						{
+							role: "user",
+							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+							content: multimodalContent as any,
+						},
+					],
+				});
+				const transcript = transcriptionResult.trim();
+				console.log("Transcript for diagram:", transcript);
+
+				// Step 2: Generate diagram from transcript (reuse logic from /draw)
+				const diagramModel = google("gemini-2.0-flash-exp");
+				const systemPrompt = `You are an expert in Mermaid diagrams. Generate ONLY the Mermaid code block based on the user's instruction. Do not include any explanations, comments, or surrounding text like \`\`\`mermaid ... \`\`\`. Just output the raw Mermaid syntax. Pay close attention to the user's specific request, whether it's generating a new diagram or updating an existing one.`;
+				const { text: diagramText } = await generateText({
+					model: diagramModel,
+					system: systemPrompt,
+					prompt: transcript,
+				});
+				const cleanDiagram = diagramText
+					.trim()
+					.replace(/^```mermaid\n?/, "")
+					.replace(/```$/, "")
+					.trim();
+				console.log("Generated Mermaid from voice:", cleanDiagram);
+				return c.text(cleanDiagram);
+			} catch (error) {
+				if (error instanceof z.ZodError) {
+					console.error("Validation Error (voice-to-diagram):", error.errors);
+					return c.json(
+						{ error: "Invalid input", details: error.flatten() },
+						400,
+					);
+				}
+				console.error("Error in voice-to-diagram:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				return c.json(
+					{ error: `Voice-to-diagram failed: ${errorMessage}` },
+					500,
+				);
+			}
+		},
+	);
+// --- End Voice-to-Diagram Route ---
 
 export const handler = handle(app);
 
