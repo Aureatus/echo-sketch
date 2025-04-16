@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import type { DiagramResponse } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ function DrawRouteComponent() {
 	// History items with unique timestamp key
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
 	const handleDiagramGenerated = async (response: DiagramResponse) => {
 		const { diagram } = response;
@@ -69,39 +71,54 @@ function DrawRouteComponent() {
 
 	return (
 		<div className="flex h-screen">
-			<aside className="w-64 flex-shrink-0 p-4 bg-card text-card-foreground border-r border-border">
-				<Card className="h-full">
-					<CardHeader>
-						<CardTitle>History</CardTitle>
-					</CardHeader>
-					<CardContent className="p-0">
-						<ScrollArea className="h-[calc(100vh-2rem)] p-2">
-							<ul className="space-y-2">
-								{history.map((item) => (
-									<li key={item.timestamp}>
-										<button
-											type="button"
-											className="text-primary hover:underline"
-											onClick={async () => {
-												const api = excalidrawAPIRef.current;
-												if (!api) return;
-												const { elements: rawElements } =
-													await parseMermaidToExcalidraw(item.diagram);
-												const excEl = convertToExcalidrawElements(rawElements);
-												api.resetScene();
-												api.updateScene({ elements: excEl });
-												api.scrollToContent(excEl, { fitToContent: true });
-												setMermaidCode(item.diagram);
-											}}
-										>
-											{item.instruction}
-										</button>
-									</li>
-								))}
-							</ul>
-						</ScrollArea>
-					</CardContent>
-				</Card>
+			<aside
+				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 p-2 bg-card text-card-foreground border-r border-border`}
+			>
+				<div className="flex justify-end mb-2">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={() => setIsSidebarOpen((prev) => !prev)}
+					>
+						{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+					</Button>
+				</div>
+				{isSidebarOpen && (
+					<Card className="h-full">
+						<CardHeader>
+							<CardTitle>History</CardTitle>
+						</CardHeader>
+						<CardContent className="p-0">
+							<ScrollArea className="h-[calc(100vh-2rem)] p-2">
+								<ul className="space-y-2">
+									{history.map((item) => (
+										<li key={item.timestamp}>
+											<Button
+												variant="link"
+												size="default"
+												className="w-full justify-start p-0"
+												onClick={async () => {
+													const api = excalidrawAPIRef.current;
+													if (!api) return;
+													const { elements: rawElements } =
+														await parseMermaidToExcalidraw(item.diagram);
+													const excEl =
+														convertToExcalidrawElements(rawElements);
+													api.resetScene();
+													api.updateScene({ elements: excEl });
+													api.scrollToContent(excEl, { fitToContent: true });
+													setMermaidCode(item.diagram);
+												}}
+											>
+												{item.instruction}
+											</Button>
+										</li>
+									))}
+								</ul>
+							</ScrollArea>
+						</CardContent>
+					</Card>
+				)}
 			</aside>
 			<main className="flex-1 overflow-hidden">
 				<Excalidraw
