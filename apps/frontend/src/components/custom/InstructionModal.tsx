@@ -14,12 +14,16 @@ import { Mic, RotateCcw, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { drawMutationFn, voiceToDiagramMutationFn } from "../../lib/queries";
-import type { VoiceToDiagramMutationPayload } from "../../lib/queries";
+import type {
+	DiagramResponse,
+	DrawMutationPayload,
+	VoiceToDiagramMutationPayload,
+} from "../../lib/queries";
 
 interface InstructionModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onDiagramGenerated: (mermaidCode: string) => void;
+	onDiagramGenerated: (response: DiagramResponse) => void;
 	existingDiagramCode?: string;
 }
 
@@ -37,35 +41,41 @@ export function InstructionModal({
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const audioChunksRef = useRef<Blob[]>([]);
 
-	const drawMutation = useMutation({
-		mutationFn: drawMutationFn,
-		onSuccess: (data) => {
-			onDiagramGenerated(data);
-			setInstruction("");
+	const drawMutation = useMutation<DiagramResponse, Error, DrawMutationPayload>(
+		{
+			mutationFn: drawMutationFn,
+			onSuccess: (response) => {
+				onDiagramGenerated(response);
+				setInstruction("");
+			},
+			onError: (error) => {
+				console.error("Draw Mutation Error:", error);
+				toast.error("Diagram Generation Failed", {
+					description: error.message,
+				});
+			},
+			onSettled: () => {
+				setIsTranscribing(false); // Reset voice trigger flag
+			},
 		},
-		onError: (error) => {
-			console.error("Draw Mutation Error:", error);
-			toast.error("Diagram Generation Failed", {
-				description: error.message,
-			});
-		},
-		onSettled: () => {
-			setIsTranscribing(false); // Reset voice trigger flag
-		},
-	});
+	);
 
-	const voiceToDiagramMutation = useMutation({
+	const voiceToDiagramMutation = useMutation<
+		DiagramResponse,
+		Error,
+		VoiceToDiagramMutationPayload
+	>({
 		mutationFn: (payload: VoiceToDiagramMutationPayload) =>
 			voiceToDiagramMutationFn(payload),
 		onMutate: () => {
 			setIsTranscribing(true);
 			setInstruction("Processing audio...");
 		},
-		onSuccess: (diagramCode) => {
-			console.log("Voice-to-diagram result:", diagramCode);
+		onSuccess: (response) => {
+			console.log("Voice-to-diagram result:", response);
 			toast.success("Diagram generated from voice!");
 			setInstruction("");
-			onDiagramGenerated(diagramCode);
+			onDiagramGenerated(response);
 		},
 		onError: (error: Error) => {
 			console.error("Voice-to-Diagram Mutation Error:", error);

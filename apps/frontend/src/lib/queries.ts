@@ -24,10 +24,16 @@ export interface VoiceToDiagramMutationPayload {
 	existingDiagramCode?: string;
 }
 
+// Response type for diagram and instruction
+export interface DiagramResponse {
+	diagram: string;
+	instruction: string;
+}
+
 // Mutation function for voice-to-diagram
 export const voiceToDiagramMutationFn = async (
 	payload: VoiceToDiagramMutationPayload,
-): Promise<string> => {
+): Promise<DiagramResponse> => {
 	const { audioBlob, existingDiagramCode } = payload;
 	const audioFile = new File([audioBlob], "recording.webm", {
 		type: audioBlob.type || "audio/webm",
@@ -56,13 +62,13 @@ export const voiceToDiagramMutationFn = async (
 		}
 		throw new Error(errorMessage);
 	}
-	return res.text();
+	return res.json();
 };
 
 // Mutation function for generating diagrams
 export const drawMutationFn = async (
 	payload: DrawMutationPayload,
-): Promise<string> => {
+): Promise<DiagramResponse> => {
 	const res = await client.draw.$post({ json: payload });
 	if (!res.ok) {
 		// Attempt to parse error from response, default to generic message
@@ -84,6 +90,6 @@ export const drawMutationFn = async (
 		}
 		throw new Error(errorMessage);
 	}
-	// Expecting plain text response (Mermaid code)
-	return res.text();
+	// Expecting JSON response with diagram and instruction
+	return res.json();
 };
