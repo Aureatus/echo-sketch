@@ -94,6 +94,8 @@ export function InstructionModal({
 
 	const handleMicClick = async () => {
 		if (isRecording) {
+			// Flush any buffered audio data before stopping
+			mediaRecorderRef.current?.requestData();
 			mediaRecorderRef.current?.stop();
 		} else {
 			if (!navigator.mediaDevices?.getUserMedia) {

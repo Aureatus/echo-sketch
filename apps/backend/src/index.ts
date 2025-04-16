@@ -6,12 +6,15 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { Resource } from "sst";
 
-import { File } from "node:buffer";
 import { handle } from "hono/aws-lambda";
 import OpenAI from "openai";
 // import mermaid from "mermaid"; // Mermaid seems unused now, commenting out
 import { z } from "zod";
 import "dotenv/config";
+import { createReadStream } from "node:fs";
+import { unlink, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 // // Initialize mermaid (needed for parsing)
 // // Using a basic config. Adjust if needed for specific parsing features.
@@ -50,14 +53,16 @@ async function generateDiagram(
 
 async function speechToText(audioBuffer: ArrayBuffer, audioType: string) {
 	const openai = new OpenAI({ apiKey: Resource.OpenAIKey.value });
-	const ext = audioType.split("/")[1] || "tmp";
-	const audioFile = new File([Buffer.from(audioBuffer)], `audio.${ext}`, {
-		type: audioType,
-	});
+	const tempDir = os.tmpdir();
+	const ext = audioType.split("/")[1] || "webm";
+	const filePath = path.join(tempDir, `audio-${Date.now()}.${ext}`);
+	await writeFile(filePath, Buffer.from(audioBuffer));
+	const stream = createReadStream(filePath);
 	const response = await openai.audio.transcriptions.create({
-		file: audioFile,
+		file: stream,
 		model: "whisper-1",
 	});
+	await unlink(filePath);
 	return response.text.trim();
 }
 
@@ -69,7 +74,7 @@ const drawSchema = z.object({
 // Zod schema for transcription input (form data)
 const transcribeSchema = z.object({
 	audio: z
-		.instanceof(File)
+		.instanceof(Blob)
 		.refine((file) => file.size > 0, "Audio file cannot be empty"),
 	existingDiagramCode: z.string().optional(),
 });
