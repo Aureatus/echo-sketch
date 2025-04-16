@@ -13,38 +13,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Mic, RotateCcw, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { drawMutationFn } from "../../lib/queries";
-
-import { client } from "../../lib/rpc-client";
-
-// Helper for voice-to-diagram API using rpc-client
-async function voiceToDiagramMutationFn(audioBlob: Blob): Promise<string> {
-	// Convert Blob to File for the backend validator
-	const audioFile = new File([audioBlob], "recording.webm", {
-		type: audioBlob.type || "audio/webm",
-		lastModified: Date.now(),
-	});
-	const res = await client["voice-to-diagram"].$post({
-		form: { audio: audioFile },
-	});
-	if (!res.ok) {
-		let errorMessage = "Failed to fetch from /voice-to-diagram (RPC)";
-		try {
-			const errorData = await res.json();
-			if (errorData && typeof errorData === "object" && "error" in errorData) {
-				errorMessage = String(errorData.error);
-			} else {
-				const textError = await res.text();
-				errorMessage = textError || errorMessage;
-			}
-		} catch (e) {
-			const textError = await res.text();
-			errorMessage = textError || errorMessage;
-		}
-		throw new Error(errorMessage);
-	}
-	return res.text();
-}
+import { drawMutationFn, voiceToDiagramMutationFn } from "../../lib/queries";
+import type { VoiceToDiagramMutationPayload } from "../../lib/queries";
 
 interface InstructionModalProps {
 	open: boolean;
@@ -85,7 +55,8 @@ export function InstructionModal({
 	});
 
 	const voiceToDiagramMutation = useMutation({
-		mutationFn: voiceToDiagramMutationFn,
+		mutationFn: (payload: VoiceToDiagramMutationPayload) =>
+			voiceToDiagramMutationFn(payload),
 		onMutate: () => {
 			setIsTranscribing(true);
 			setInstruction("Processing audio...");
@@ -139,7 +110,7 @@ export function InstructionModal({
 					const audioBlob = new Blob(audioChunksRef.current, {
 						type: "audio/webm",
 					});
-					voiceToDiagramMutation.mutate(audioBlob);
+					voiceToDiagramMutation.mutate({ audioBlob, existingDiagramCode });
 
 					// Stop mic access tracks
 					for (const track of stream.getTracks()) {

@@ -18,6 +18,47 @@ export const indexQueryOptions = queryOptions({
 	},
 });
 
+// Payload type for voice-to-diagram
+export interface VoiceToDiagramMutationPayload {
+	audioBlob: Blob;
+	existingDiagramCode?: string;
+}
+
+// Mutation function for voice-to-diagram
+export const voiceToDiagramMutationFn = async (
+	payload: VoiceToDiagramMutationPayload,
+): Promise<string> => {
+	const { audioBlob, existingDiagramCode } = payload;
+	const audioFile = new File([audioBlob], "recording.webm", {
+		type: audioBlob.type || "audio/webm",
+		lastModified: Date.now(),
+	});
+	const form: { audio: File; existingDiagramCode?: string } = {
+		audio: audioFile,
+	};
+	if (existingDiagramCode) {
+		form.existingDiagramCode = existingDiagramCode;
+	}
+	const res = await client["voice-to-diagram"].$post({ form });
+	if (!res.ok) {
+		let errorMessage = "Failed to fetch from /voice-to-diagram (RPC)";
+		try {
+			const errorData = await res.json();
+			if (errorData && typeof errorData === "object" && "error" in errorData) {
+				errorMessage = String(errorData.error);
+			} else {
+				const textError = await res.text();
+				errorMessage = textError || errorMessage;
+			}
+		} catch (e) {
+			const textError = await res.text();
+			errorMessage = textError || errorMessage;
+		}
+		throw new Error(errorMessage);
+	}
+	return res.text();
+};
+
 // Mutation function for generating diagrams
 export const drawMutationFn = async (
 	payload: DrawMutationPayload,
@@ -45,40 +86,4 @@ export const drawMutationFn = async (
 	}
 	// Expecting plain text response (Mermaid code)
 	return res.text();
-};
-
-// --- New Transcription Function ---
-export const transcribeMutationFn = async (
-	audioBlob: Blob,
-): Promise<string> => {
-	console.log("Sending transcription request via RPC with blob:", audioBlob);
-
-	// Convert Blob to File for the backend validator
-	const audioFile = new File([audioBlob], "recording.webm", {
-		type: audioBlob.type || "audio/webm", // Use blob's type or default
-		lastModified: Date.now(),
-	});
-
-	const res = await client.transcribe.$post({
-		form: { audio: audioFile }, // Pass the File object
-	});
-
-	if (!res.ok) {
-		let errorMessage = "Failed to fetch from /transcribe (RPC)";
-		try {
-			const errorData = await res.json();
-			if (errorData && typeof errorData === "object" && "error" in errorData) {
-				errorMessage = String(errorData.error);
-			} else {
-				const textError = await res.text();
-				errorMessage = textError || errorMessage;
-			}
-		} catch (e) {
-			const textError = await res.text();
-			errorMessage = textError || errorMessage;
-		}
-		throw new Error(errorMessage);
-	}
-
-	return res.text(); // Expecting plain text response (transcribed text)
 };

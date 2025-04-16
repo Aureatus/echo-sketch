@@ -85,6 +85,7 @@ const transcribeSchema = z.object({
 	audio: z
 		.instanceof(File)
 		.refine((file) => file.size > 0, "Audio file cannot be empty"),
+	existingDiagramCode: z.string().optional(),
 });
 
 const app = new Hono()
@@ -113,14 +114,17 @@ const app = new Hono()
 		zValidator("form", transcribeSchema),
 		async (c) => {
 			try {
-				const { audio: audioFile } = c.req.valid("form");
+				const { audio: audioFile, existingDiagramCode } = c.req.valid("form");
 				const audioBuffer = await audioFile.arrayBuffer();
 
 				const transcript = await speechToText(audioBuffer, audioFile.type);
 
 				console.log("Transcript for diagram:", transcript);
 
-				const cleanDiagram = await generateDiagram(transcript, undefined);
+				const cleanDiagram = await generateDiagram(
+					transcript,
+					existingDiagramCode,
+				);
 				return c.text(cleanDiagram);
 			} catch (error) {
 				if (error instanceof z.ZodError) {
