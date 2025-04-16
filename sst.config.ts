@@ -17,8 +17,11 @@ export default $config({
   async run() {
     const geminiKey = new sst.Secret("GeminiAPIKey");
 
+    const openaiKey = new sst.Secret("OpenAIKey");
+
+
     const hono = new sst.aws.Function("Hono", {
-      link: [geminiKey],
+      link: [geminiKey, openaiKey],
       url: true,
       handler: "apps/backend/src/index.handler",
     });

@@ -14,6 +14,10 @@ declare module "sst" {
       "type": "sst.aws.Function"
       "url": string
     }
+    "OpenAIKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string

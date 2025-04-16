@@ -6,10 +6,11 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { Resource } from "sst";
 
+import { File } from "node:buffer";
 import { handle } from "hono/aws-lambda";
+import OpenAI from "openai";
 // import mermaid from "mermaid"; // Mermaid seems unused now, commenting out
 import { z } from "zod";
-
 import "dotenv/config";
 
 // // Initialize mermaid (needed for parsing)
@@ -48,31 +49,16 @@ async function generateDiagram(
 }
 
 async function speechToText(audioBuffer: ArrayBuffer, audioType: string) {
-	const google = createGoogleGenerativeAI({
-		apiKey: Resource.GeminiAPIKey.value,
+	const openai = new OpenAI({ apiKey: Resource.OpenAIKey.value });
+	const ext = audioType.split("/")[1] || "tmp";
+	const audioFile = new File([Buffer.from(audioBuffer)], `audio.${ext}`, {
+		type: audioType,
 	});
-	const model = google("gemini-2.0-flash-001");
-	const multimodalContent = [
-		{
-			type: "file",
-			data: audioBuffer,
-			mimeType: audioType,
-		},
-	];
-	const { text: transcriptionResult } = await generateText({
-		model,
-		system:
-			"You are a speech-to-text transcription engine. Only transcribe the audio exactly as spoken, with no additional commentary, questions, or explanations.",
-		messages: [
-			{
-				role: "user",
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				content: multimodalContent as any,
-			},
-		],
+	const response = await openai.audio.transcriptions.create({
+		file: audioFile,
+		model: "whisper-1",
 	});
-	const transcript = transcriptionResult.trim();
-	return transcript;
+	return response.text.trim();
 }
 
 const drawSchema = z.object({
