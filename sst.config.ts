@@ -9,7 +9,7 @@ export default $config({
       home: "aws",
       providers: {
         aws: {
-          profile: input.stage === "production" ? "alextknott-production" : "alextknott-dev"
+          profile: input.stage === "production" ? "alextknott" : "alextknott-dev"
         }
       }
     };
@@ -34,7 +34,8 @@ export default $config({
       build: {
         command: "npm run build",
         output: "dist"
-      }
+      },
+      domain: "echo-sketch.com"
     });
 
     return {
