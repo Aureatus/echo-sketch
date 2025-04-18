@@ -21,6 +21,27 @@ import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
 
+function ExcalidrawWrapper({
+	elements,
+	theme,
+	version,
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+}: { elements: any[]; theme: "light" | "dark"; version: "current" | "new" }) {
+	return (
+		<Card className="flex flex-col flex-1 m-1">
+			<CardHeader>
+				<CardTitle>{version}</CardTitle>
+			</CardHeader>
+			<CardContent className="flex-1">
+				<Excalidraw
+					initialData={{ elements: elements, appState: {} }}
+					theme={theme}
+				/>
+			</CardContent>
+		</Card>
+	);
+}
+
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
 });
@@ -190,17 +211,11 @@ function DrawRouteComponent() {
 			<main className="flex-1 flex flex-col h-full">
 				{newElements ? (
 					<div className="flex-1 flex p-2">
-						<Card className="flex flex-col flex-1 m-1">
-							<CardHeader>
-								<CardTitle>Current</CardTitle>
-							</CardHeader>
-							<CardContent className="flex-1">
-								<Excalidraw
-									initialData={{ elements: oldElements || [], appState: {} }}
-									theme={resolvedTheme}
-								/>
-							</CardContent>
-						</Card>
+						<ExcalidrawWrapper
+							elements={oldElements || []}
+							theme={resolvedTheme}
+							version={"current"}
+						/>
 						<div className="flex flex-col flex-1 m-1">
 							<div className="flex justify-end p-2 space-x-2">
 								<Button onClick={approve}>Approve</Button>
@@ -208,17 +223,11 @@ function DrawRouteComponent() {
 									Decline
 								</Button>
 							</div>
-							<Card className="flex-1 flex flex-col">
-								<CardHeader>
-									<CardTitle>New</CardTitle>
-								</CardHeader>
-								<CardContent className="flex-1">
-									<Excalidraw
-										initialData={{ elements: newElements, appState: {} }}
-										theme={resolvedTheme}
-									/>
-								</CardContent>
-							</Card>
+							<ExcalidrawWrapper
+								elements={newElements}
+								theme={resolvedTheme}
+								version={"new"}
+							/>
 						</div>
 					</div>
 				) : (
