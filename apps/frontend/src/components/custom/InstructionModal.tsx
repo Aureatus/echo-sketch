@@ -7,7 +7,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
 import { Mic, RotateCcw, Square } from "lucide-react";
@@ -94,6 +93,8 @@ export function InstructionModal({
 
 	const handleMicClick = async () => {
 		if (isRecording) {
+			// Flush any buffered audio data before stopping
+			mediaRecorderRef.current?.requestData();
 			mediaRecorderRef.current?.stop();
 		} else {
 			if (!navigator.mediaDevices?.getUserMedia) {
@@ -209,24 +210,25 @@ export function InstructionModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="w-full max-w-3xl max-h-[80vh] overflow-auto">
 				<DialogHeader>
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="instruction">Instructions</Label>
+						<textarea
+							id="instruction"
+							value={instruction}
+							onChange={(e) => setInstruction(e.target.value)}
+							placeholder={placeholderText}
+							disabled={isRecording || isTranscribing}
+							rows={5}
+							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+						/>
+					</div>
 					<div className="grid grid-cols-5 items-end gap-2">
-						<div className="grid w-full items-center gap-1.5 col-span-3">
-							<Label htmlFor="instruction">Instructions</Label>
-							<Input
-								id="instruction"
-								value={instruction}
-								onChange={(e) => setInstruction(e.target.value)}
-								className=""
-								placeholder={placeholderText}
-								disabled={isRecording || isTranscribing}
-							/>
-						</div>
 						<div className="col-span-1 flex justify-center">
 							<Button
 								type="button"
