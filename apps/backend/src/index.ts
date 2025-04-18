@@ -3,10 +3,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { zValidator } from "@hono/zod-validator";
 import { generateText } from "ai";
 import { Hono } from "hono";
+import { handle } from "hono/aws-lambda";
+import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { Resource } from "sst";
 
-import { handle } from "hono/aws-lambda";
 // import mermaid from "mermaid"; // Mermaid seems unused now, commenting out
 import { z } from "zod";
 
@@ -90,6 +91,11 @@ const transcribeSchema = z.object({
 
 const app = new Hono()
 	.use(logger())
+	.use(
+		cors({
+			origin: "echo-sketch.com",
+		}),
+	)
 	.get("/", (c) => {
 		return c.text("Hello Hono!");
 	})
