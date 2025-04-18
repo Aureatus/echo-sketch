@@ -265,7 +265,11 @@ function DrawRouteComponent() {
 					<div className="flex-1 flex flex-col h-full">
 						<header className="px-4 py-2 bg-card border-b flex justify-start space-x-2">
 							<Button onClick={approve}>Approve</Button>
-							<Button variant="destructive" onClick={decline}>
+							<Button
+								variant="destructive"
+								onClick={decline}
+								className="cursor-pointer"
+							>
 								Decline
 							</Button>
 						</header>
