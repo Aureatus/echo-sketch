@@ -89,14 +89,14 @@ function DrawRouteComponent() {
 							<CardTitle>History</CardTitle>
 						</CardHeader>
 						<CardContent className="flex-1 p-0">
-							<ScrollArea className="h-full p-2">
+							<ScrollArea className="h-full p-2 w-full">
 								<ul className="space-y-2">
 									{history.map((item) => (
 										<li key={item.timestamp}>
 											<Button
 												variant="link"
 												size="default"
-												className="w-full justify-start p-0"
+												className="w-full justify-start p-0 whitespace-normal break-words"
 												onClick={async () => {
 													const api = excalidrawAPIRef.current;
 													if (!api) return;
