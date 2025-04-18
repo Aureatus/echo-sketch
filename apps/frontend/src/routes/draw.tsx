@@ -47,6 +47,16 @@ function DrawRouteComponent() {
 		},
 	});
 	const [mermaidCode, setMermaidCode] = useState<string>("");
+	// new approval states
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const [currentElements, setCurrentElements] = useState<any[]>([]);
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const [oldElements, setOldElements] = useState<any[] | null>(null);
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const [newElements, setNewElements] = useState<any[] | null>(null);
+	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
+		null,
+	);
 	// History items with unique timestamp key
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -75,42 +85,55 @@ function DrawRouteComponent() {
 	});
 
 	const handleDiagramGenerated = async (response: DiagramResponse) => {
-		const { diagram } = response;
-		console.log(
-			"Received Mermaid code:",
-			diagram,
-			"Instruction:",
-			response.instruction,
-		);
-
-		const api = excalidrawAPIRef.current;
-		if (!api) {
-			console.error("Excalidraw API not available yet.");
-			return;
-		}
-
 		try {
+			const { diagram } = response;
+			console.log(
+				"Received Mermaid code:",
+				diagram,
+				"Instruction:",
+				response.instruction,
+			);
+
 			const { elements: rawElements } = await parseMermaidToExcalidraw(diagram);
 			const excalidrawElements = convertToExcalidrawElements(rawElements);
-			api.resetScene();
-			api.updateScene({ elements: excalidrawElements });
-			api.scrollToContent(excalidrawElements, { fitToContent: true });
-			setMermaidCode(diagram);
+			// trigger approval workflow
+			setOldElements(currentElements);
+			setNewElements(excalidrawElements);
+			setLastResponse(response);
 			setIsModalOpen(false);
-			setHistory((prev) => [...prev, { ...response, timestamp: Date.now() }]);
 		} catch (error) {
 			console.error(
 				"Failed to parse Mermaid code received from backend:",
 				error,
 			);
 			console.error("--- Failing Mermaid Code ---");
-			console.error(diagram);
 			console.error("--- End Failing Mermaid Code ---");
 			toast.error("Diagram Generation Error", {
 				description:
 					"Failed to parse the generated diagram. The AI might have produced invalid code. Please try again.",
 			});
 		}
+	};
+
+	// approval handlers
+	const approve = () => {
+		if (newElements) {
+			setCurrentElements(newElements);
+			if (lastResponse)
+				setHistory((prev) => [
+					...prev,
+					{ ...lastResponse, timestamp: Date.now() },
+				]);
+			setMermaidCode(lastResponse?.diagram || mermaidCode);
+		}
+		setNewElements(null);
+		setOldElements(null);
+		setLastResponse(null);
+	};
+	const decline = () => {
+		setNewElements(null);
+		setOldElements(null);
+		setLastResponse(null);
 	};
 
 	return (
@@ -165,52 +188,88 @@ function DrawRouteComponent() {
 				)}
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
-				<div className="flex-1">
-					<Excalidraw
-						excalidrawAPI={(api) => {
-							excalidrawAPIRef.current = api;
-						}}
-						theme={resolvedTheme}
-						renderTopRightUI={() => {
-							const buttonText = mermaidCode
-								? "Update Diagram"
-								: "Generate Diagram";
-							return (
-								<div className="flex items-center space-x-2 mr-2">
-									<Button onClick={() => setIsModalOpen(true)}>
-										{buttonText}
-									</Button>
-									<Button
-										type="button"
-										variant="outline"
-										size="icon"
-										onClick={() =>
-											micStatus === "recording"
-												? stopRecording()
-												: startRecording()
-										}
-										disabled={voiceToDiagramMutation.isPending}
-										aria-label={
-											voiceToDiagramMutation.isPending
-												? "Generating diagram"
-												: micStatus === "recording"
-													? "Stop recording"
-													: "Start recording"
-										}
-									>
-										{voiceToDiagramMutation.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : micStatus === "recording" ? (
-											<Square className="h-4 w-4 text-red-500 fill-red-500" />
-										) : (
-											<Mic className="h-4 w-4" />
-										)}
-									</Button>
-								</div>
-							);
-						}}
-					/>
-				</div>
+				{newElements ? (
+					<div className="flex-1 flex p-2">
+						<Card className="flex flex-col flex-1 m-1">
+							<CardHeader>
+								<CardTitle>Current</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1">
+								<Excalidraw
+									initialData={{ elements: oldElements || [], appState: {} }}
+									theme={resolvedTheme}
+								/>
+							</CardContent>
+						</Card>
+						<div className="flex flex-col flex-1 m-1">
+							<div className="flex justify-end p-2 space-x-2">
+								<Button onClick={approve}>Approve</Button>
+								<Button variant="destructive" onClick={decline}>
+									Decline
+								</Button>
+							</div>
+							<Card className="flex-1 flex flex-col">
+								<CardHeader>
+									<CardTitle>New</CardTitle>
+								</CardHeader>
+								<CardContent className="flex-1">
+									<Excalidraw
+										initialData={{ elements: newElements, appState: {} }}
+										theme={resolvedTheme}
+									/>
+								</CardContent>
+							</Card>
+						</div>
+					</div>
+				) : (
+					<div className="flex-1">
+						<Excalidraw
+							initialData={{ elements: currentElements, appState: {} }}
+							excalidrawAPI={(api) => {
+								excalidrawAPIRef.current = api;
+							}}
+							theme={resolvedTheme}
+							renderTopRightUI={() => {
+								const buttonText = mermaidCode
+									? "Update Diagram"
+									: "Generate Diagram";
+								return (
+									<div className="flex items-center space-x-2 mr-2">
+										<Button onClick={() => setIsModalOpen(true)}>
+											{buttonText}
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() =>
+												micStatus === "recording"
+													? stopRecording()
+													: startRecording()
+											}
+											disabled={voiceToDiagramMutation.isPending}
+											aria-label={
+												voiceToDiagramMutation.isPending
+													? "Generating diagram"
+													: micStatus === "recording"
+														? "Stop recording"
+														: "Start recording"
+											}
+										>
+											{voiceToDiagramMutation.isPending ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : micStatus === "recording" ? (
+												<Square className="h-4 w-4 text-red-500 fill-red-500" />
+											) : (
+												<Mic className="h-4 w-4" />
+											)}
+										</Button>
+									</div>
+								);
+							}}
+						/>
+					</div>
+				)}
 				<InstructionModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
