@@ -70,9 +70,9 @@ function DrawRouteComponent() {
 	};
 
 	return (
-		<div className="flex h-screen">
+		<div className="flex h-full">
 			<aside
-				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 p-2 bg-card text-card-foreground border-r border-border`}
+				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
 			>
 				<div className="flex justify-end mb-2">
 					<Button
@@ -84,12 +84,12 @@ function DrawRouteComponent() {
 					</Button>
 				</div>
 				{isSidebarOpen && (
-					<Card className="h-full">
+					<Card className="flex flex-col flex-1">
 						<CardHeader>
 							<CardTitle>History</CardTitle>
 						</CardHeader>
-						<CardContent className="p-0">
-							<ScrollArea className="h-[calc(100vh-2rem)] p-2">
+						<CardContent className="flex-1 p-0">
+							<ScrollArea className="h-full p-2">
 								<ul className="space-y-2">
 									{history.map((item) => (
 										<li key={item.timestamp}>
@@ -120,23 +120,25 @@ function DrawRouteComponent() {
 					</Card>
 				)}
 			</aside>
-			<main className="flex-1 overflow-hidden">
-				<Excalidraw
-					excalidrawAPI={(api) => {
-						excalidrawAPIRef.current = api;
-					}}
-					theme={resolvedTheme}
-					renderTopRightUI={() => {
-						const buttonText = mermaidCode
-							? "Update Diagram"
-							: "Generate Diagram";
-						return (
-							<Button onClick={() => setIsModalOpen(true)} className="mr-2">
-								{buttonText}
-							</Button>
-						);
-					}}
-				/>
+			<main className="flex-1 flex flex-col h-full">
+				<div className="flex-1">
+					<Excalidraw
+						excalidrawAPI={(api) => {
+							excalidrawAPIRef.current = api;
+						}}
+						theme={resolvedTheme}
+						renderTopRightUI={() => {
+							const buttonText = mermaidCode
+								? "Update Diagram"
+								: "Generate Diagram";
+							return (
+								<Button onClick={() => setIsModalOpen(true)} className="mr-2">
+									{buttonText}
+								</Button>
+							);
+						}}
+					/>
+				</div>
 				<InstructionModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
