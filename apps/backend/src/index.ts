@@ -98,7 +98,7 @@ const app = new Hono()
 			const { instruction, existingDiagramCode } = c.req.valid("json");
 
 			const cleanText = await generateDiagram(instruction, existingDiagramCode);
-			return c.text(cleanText);
+			return c.json({ diagram: cleanText, instruction });
 		} catch (error) {
 			console.error("Error generating diagram:", error);
 			const errorMessage =
@@ -125,7 +125,7 @@ const app = new Hono()
 					transcript,
 					existingDiagramCode,
 				);
-				return c.text(cleanDiagram);
+				return c.json({ diagram: cleanDiagram, instruction: transcript });
 			} catch (error) {
 				if (error instanceof z.ZodError) {
 					console.error("Validation Error (voice-to-diagram):", error.errors);
