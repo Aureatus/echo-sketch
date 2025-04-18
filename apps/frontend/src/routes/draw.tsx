@@ -283,24 +283,26 @@ function DrawRouteComponent() {
 						</div>
 					</div>
 				) : (
-					<div className="flex-1">
-						<Excalidraw
-							initialData={{ elements: currentElements, appState: {} }}
-							excalidrawAPI={(api) => {
-								excalidrawAPIRef.current = api;
-							}}
-							theme={resolvedTheme}
-							renderTopRightUI={() => (
-								<CustomHeader
-									mermaidCode={mermaidCode}
-									setIsModalOpen={setIsModalOpen}
-									startRecording={startRecording}
-									stopRecording={stopRecording}
-									voiceToDiagramMutation={voiceToDiagramMutation}
-									micStatus={micStatus}
-								/>
-							)}
-						/>
+					<div className="flex-1 flex flex-col h-full">
+						<header className="px-4 py-2 bg-card border-b">
+							<CustomHeader
+								mermaidCode={mermaidCode}
+								setIsModalOpen={setIsModalOpen}
+								startRecording={startRecording}
+								stopRecording={stopRecording}
+								voiceToDiagramMutation={voiceToDiagramMutation}
+								micStatus={micStatus}
+							/>
+						</header>
+						<div className="flex-1">
+							<Excalidraw
+								initialData={{ elements: currentElements, appState: {} }}
+								excalidrawAPI={(api) => {
+									excalidrawAPIRef.current = api;
+								}}
+								theme={resolvedTheme}
+							/>
+						</div>
 					</div>
 				)}
 				<InstructionModal
