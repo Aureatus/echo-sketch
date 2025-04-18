@@ -262,24 +262,26 @@ function DrawRouteComponent() {
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
 				{newElements ? (
-					<div className="flex-1 flex p-2">
-						<ExcalidrawWrapper
-							elements={oldElements || []}
-							theme={resolvedTheme}
-							version={"current"}
-						/>
-						<div className="flex flex-col flex-1 m-1">
-							<div className="flex justify-end p-2 space-x-2">
-								<Button onClick={approve}>Approve</Button>
-								<Button variant="destructive" onClick={decline}>
-									Decline
-								</Button>
-							</div>
+					<div className="flex-1 flex flex-col h-full">
+						<header className="px-4 py-2 bg-card border-b flex justify-start space-x-2">
+							<Button onClick={approve}>Approve</Button>
+							<Button variant="destructive" onClick={decline}>
+								Decline
+							</Button>
+						</header>
+						<div className="flex-1 flex p-2">
 							<ExcalidrawWrapper
-								elements={newElements}
+								elements={oldElements || []}
 								theme={resolvedTheme}
-								version={"new"}
+								version={"current"}
 							/>
+							<div className="flex flex-col flex-1 m-1">
+								<ExcalidrawWrapper
+									elements={newElements}
+									theme={resolvedTheme}
+									version={"new"}
+								/>
+							</div>
 						</div>
 					</div>
 				) : (
