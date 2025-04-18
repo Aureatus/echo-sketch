@@ -16,7 +16,7 @@ import type { VoiceToDiagramMutationPayload } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Mic, Square } from "lucide-react";
+import { Loader2, Mic, Square } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
@@ -33,7 +33,11 @@ function DrawRouteComponent() {
 		startRecording,
 		stopRecording,
 	} = useReactMediaRecorder({
-		audio: true,
+		audio: {
+			echoCancellation: true,
+			noiseSuppression: true,
+			autoGainControl: true,
+		},
 		onStop: (_blobUrl, blob) => {
 			// Automatically send recorded Blob on stop
 			voiceToDiagramMutation.mutate({
@@ -58,7 +62,6 @@ function DrawRouteComponent() {
 		mutationFn: (payload) => voiceToDiagramMutationFn(payload),
 		onMutate: () => {
 			console.log("Voice-to-diagram mutation started");
-			toast.info("Transcribing...");
 		},
 		onSuccess: (response) => {
 			console.log("Voice-to-diagram response received", response);
@@ -68,9 +71,7 @@ function DrawRouteComponent() {
 			console.error("Voice-to-Diagram Mutation Error:", error);
 			toast.error("Voice-to-Diagram Failed", { description: error.message });
 		},
-		onSettled: () => {
-			toast.dismiss();
-		},
+		onSettled: () => {},
 	});
 
 	const handleDiagramGenerated = async (response: DiagramResponse) => {
@@ -190,12 +191,16 @@ function DrawRouteComponent() {
 										}
 										disabled={voiceToDiagramMutation.isPending}
 										aria-label={
-											micStatus === "recording"
-												? "Stop recording"
-												: "Start recording"
+											voiceToDiagramMutation.isPending
+												? "Generating diagram"
+												: micStatus === "recording"
+													? "Stop recording"
+													: "Start recording"
 										}
 									>
-										{micStatus === "recording" ? (
+										{voiceToDiagramMutation.isPending ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : micStatus === "recording" ? (
 											<Square className="h-4 w-4 text-red-500 fill-red-500" />
 										) : (
 											<Mic className="h-4 w-4" />
