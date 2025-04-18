@@ -14,7 +14,7 @@ import type { DiagramResponse } from "@/lib/queries";
 import { voiceToDiagramMutationFn } from "@/lib/queries";
 import type { VoiceToDiagramMutationPayload } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useMutation } from "@tanstack/react-query";
+import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Loader2, Mic, Square } from "lucide-react";
 import { useRef, useState } from "react";
@@ -39,6 +39,58 @@ function ExcalidrawWrapper({
 				/>
 			</CardContent>
 		</Card>
+	);
+}
+
+function CustomHeader({
+	mermaidCode,
+	setIsModalOpen,
+	startRecording,
+	stopRecording,
+	voiceToDiagramMutation,
+	micStatus,
+}: {
+	mermaidCode: string;
+	setIsModalOpen: (open: boolean) => void;
+	startRecording: () => void;
+	stopRecording: () => void;
+	voiceToDiagramMutation: UseMutationResult<
+		DiagramResponse,
+		Error,
+		VoiceToDiagramMutationPayload,
+		unknown
+	>;
+	micStatus: string;
+}) {
+	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
+	return (
+		<div className="flex items-center space-x-2 mr-2">
+			<Button onClick={() => setIsModalOpen(true)}>{buttonText}</Button>
+			<Button
+				type="button"
+				variant="outline"
+				size="icon"
+				onClick={() =>
+					micStatus === "recording" ? stopRecording() : startRecording()
+				}
+				disabled={voiceToDiagramMutation.isPending}
+				aria-label={
+					voiceToDiagramMutation.isPending
+						? "Generating diagram"
+						: micStatus === "recording"
+							? "Stop recording"
+							: "Start recording"
+				}
+			>
+				{voiceToDiagramMutation.isPending ? (
+					<Loader2 className="h-4 w-4 animate-spin" />
+				) : micStatus === "recording" ? (
+					<Square className="h-4 w-4 text-red-500 fill-red-500" />
+				) : (
+					<Mic className="h-4 w-4" />
+				)}
+			</Button>
+		</div>
 	);
 }
 
@@ -238,44 +290,16 @@ function DrawRouteComponent() {
 								excalidrawAPIRef.current = api;
 							}}
 							theme={resolvedTheme}
-							renderTopRightUI={() => {
-								const buttonText = mermaidCode
-									? "Update Diagram"
-									: "Generate Diagram";
-								return (
-									<div className="flex items-center space-x-2 mr-2">
-										<Button onClick={() => setIsModalOpen(true)}>
-											{buttonText}
-										</Button>
-										<Button
-											type="button"
-											variant="outline"
-											size="icon"
-											onClick={() =>
-												micStatus === "recording"
-													? stopRecording()
-													: startRecording()
-											}
-											disabled={voiceToDiagramMutation.isPending}
-											aria-label={
-												voiceToDiagramMutation.isPending
-													? "Generating diagram"
-													: micStatus === "recording"
-														? "Stop recording"
-														: "Start recording"
-											}
-										>
-											{voiceToDiagramMutation.isPending ? (
-												<Loader2 className="h-4 w-4 animate-spin" />
-											) : micStatus === "recording" ? (
-												<Square className="h-4 w-4 text-red-500 fill-red-500" />
-											) : (
-												<Mic className="h-4 w-4" />
-											)}
-										</Button>
-									</div>
-								);
-							}}
+							renderTopRightUI={() => (
+								<CustomHeader
+									mermaidCode={mermaidCode}
+									setIsModalOpen={setIsModalOpen}
+									startRecording={startRecording}
+									stopRecording={stopRecording}
+									voiceToDiagramMutation={voiceToDiagramMutation}
+									micStatus={micStatus}
+								/>
+							)}
 						/>
 					</div>
 				)}
