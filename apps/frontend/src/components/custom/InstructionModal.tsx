@@ -39,6 +39,7 @@ export function InstructionModal({
 	// const [drawTriggeredByVoice, setDrawTriggeredByVoice] = useState(false);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const audioChunksRef = useRef<Blob[]>([]);
+	const formRef = useRef<HTMLFormElement>(null);
 
 	const drawMutation = useMutation<DiagramResponse, Error, DrawMutationPayload>(
 		{
@@ -215,7 +216,7 @@ export function InstructionModal({
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={handleSubmit} className="space-y-4">
+				<form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="instruction">Instructions</Label>
 						<textarea
@@ -226,7 +227,16 @@ export function InstructionModal({
 							disabled={isRecording || isTranscribing}
 							rows={5}
 							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+									e.preventDefault();
+									formRef.current?.requestSubmit();
+								}
+							}}
 						/>
+						<p className="text-sm text-muted-foreground mt-1">
+							Press Ctrl+Enter or (Cmd+Enter) to submit
+						</p>
 					</div>
 					<div className="grid grid-cols-5 items-end gap-2">
 						<div className="col-span-1 flex justify-center">
