@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 import { generateDiagramText } from "../../lib/diagramFlow";
 import type { DiagramResponse, DrawMutationPayload } from "../../lib/queries";
 
@@ -50,9 +49,7 @@ export function InstructionModal({
 			setInstruction("");
 			onOpenChange(false);
 		} catch (error: unknown) {
-			const msg = error instanceof Error ? error.message : String(error);
 			setHasError(true);
-			toast.error("Diagram Generation Failed", { description: msg });
 		} finally {
 			setIsLoading(false);
 		}
