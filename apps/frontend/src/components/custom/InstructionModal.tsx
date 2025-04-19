@@ -83,7 +83,7 @@ export function InstructionModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-full max-w-3xl max-h-[80vh] overflow-auto">
+			<DialogContent className="w-full !max-w-none sm:!max-w-none md:!max-w-6xl max-h-[100vh] overflow-auto">
 				<DialogHeader>
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
@@ -104,6 +104,8 @@ export function InstructionModal({
 								if (editor) {
 									editor.style.height = "auto";
 									editor.style.height = `${editor.scrollHeight}px`;
+									// auto-width
+									editor.style.width = `${editor.scrollWidth}px`;
 								}
 							}}
 							placeholder={placeholderText}
