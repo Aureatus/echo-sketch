@@ -16,7 +16,7 @@ import type { VoiceToDiagramMutationPayload } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Loader2, Mic, Square } from "lucide-react";
+import { Check, Loader2, Mic, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
@@ -25,12 +25,18 @@ function ExcalidrawWrapper({
 	elements,
 	theme,
 	version,
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-}: { elements: any[]; theme: "light" | "dark"; version: "current" | "new" }) {
+	children,
+}: {
+	elements: unknown[];
+	theme: "light" | "dark";
+	version: "current" | "new";
+	children?: React.ReactNode;
+}) {
 	return (
 		<Card className="flex flex-col flex-1 m-1">
-			<CardHeader>
+			<CardHeader className="flex justify-between items-center">
 				<CardTitle>{version}</CardTitle>
+				{version === "new" && children}
 			</CardHeader>
 			<CardContent className="flex-1">
 				<Excalidraw
@@ -134,13 +140,9 @@ function DrawRouteComponent() {
 		},
 	});
 	const [mermaidCode, setMermaidCode] = useState<string>("");
-	// new approval states
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const [currentElements, setCurrentElements] = useState<any[]>([]);
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const [oldElements, setOldElements] = useState<any[] | null>(null);
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const [newElements, setNewElements] = useState<any[] | null>(null);
+	const [currentElements, setCurrentElements] = useState<unknown[]>([]);
+	const [oldElements, setOldElements] = useState<unknown[] | null>(null);
+	const [newElements, setNewElements] = useState<unknown[] | null>(null);
 	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
 		null,
 	);
@@ -277,29 +279,36 @@ function DrawRouteComponent() {
 			<main className="flex-1 flex flex-col h-full">
 				{newElements ? (
 					<div className="flex-1 flex flex-col h-full">
-						<header className="px-4 py-2 bg-card border-b flex justify-start space-x-2">
-							<Button onClick={approve}>Approve</Button>
-							<Button
-								variant="destructive"
-								onClick={decline}
-								className="cursor-pointer"
-							>
-								Decline
-							</Button>
-						</header>
 						<div className="flex-1 flex p-2">
 							<ExcalidrawWrapper
 								elements={oldElements || []}
 								theme={resolvedTheme}
 								version={"current"}
 							/>
-							<div className="flex flex-col flex-1 m-1">
-								<ExcalidrawWrapper
-									elements={newElements}
-									theme={resolvedTheme}
-									version={"new"}
-								/>
-							</div>
+							<ExcalidrawWrapper
+								elements={newElements}
+								theme={resolvedTheme}
+								version={"new"}
+							>
+								<div className="flex space-x-2">
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={approve}
+										className="text-green-500"
+									>
+										<Check className="w-8 h-8" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={decline}
+										className="text-red-500"
+									>
+										<X className="w-8 h-8" />
+									</Button>
+								</div>
+							</ExcalidrawWrapper>
 						</div>
 					</div>
 				) : (
