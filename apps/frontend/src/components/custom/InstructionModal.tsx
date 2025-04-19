@@ -132,7 +132,7 @@ export function InstructionModal({
 									},
 								},
 							}}
-							className="w-full border border-input rounded-md px-3 py-2 [&_.ql-editor]:overflow-visible [&_.ql-editor]:whitespace-pre-wrap [&_.ql-editor]:break-words [&_.ql-editor]:break-all [&_.ql-editor]:min-h-[12rem]"
+							className="w-full border border-input rounded-md px-3 py-2 [&_.ql-editor]:overflow-auto [&_.ql-editor]:max-h-[60vh] [&_.ql-editor]:whitespace-pre-wrap [&_.ql-editor]:break-words [&_.ql-editor]:break-all [&_.ql-editor]:min-h-[12rem]"
 						/>
 						<p className="text-sm text-muted-foreground mt-1">
 							Use the toolbar above or type your instructions. Press Ctrl+Enter
