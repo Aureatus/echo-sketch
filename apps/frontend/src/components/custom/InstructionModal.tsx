@@ -8,16 +8,18 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { drawMutationFn } from "../../lib/queries";
+import { generateDiagramText } from "../../lib/diagramFlow";
 import type { DiagramResponse, DrawMutationPayload } from "../../lib/queries";
 
 interface InstructionModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onDiagramGenerated: (response: DiagramResponse) => void;
+	onDiagramGenerated: (payload: {
+		response: DiagramResponse;
+		elements: unknown[];
+	}) => void;
 	existingDiagramCode?: string;
 }
 
@@ -29,47 +31,31 @@ export function InstructionModal({
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
-	const drawMutation = useMutation<DiagramResponse, Error, DrawMutationPayload>(
-		{
-			mutationFn: drawMutationFn,
-			onSuccess: (response) => {
-				onDiagramGenerated(response);
-				setInstruction("");
-			},
-			onError: (error) => {
-				console.error("Draw Mutation Error:", error);
-				toast.error("Diagram Generation Failed", {
-					description: error.message,
-				});
-			},
-		},
-	);
 
-	const handleSubmit = (event: React.FormEvent) => {
+	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
-
-		const trimmedInstruction = instruction.trim();
-		if (!trimmedInstruction) return;
-
-		drawMutation.mutate({
-			instruction: trimmedInstruction,
+		const trimmed = instruction.trim();
+		if (!trimmed) return;
+		const payload: DrawMutationPayload = {
+			instruction: trimmed,
 			existingDiagramCode,
-		});
+		};
+		try {
+			const { response, elements } = await generateDiagramText(payload);
+			onDiagramGenerated({ response, elements });
+			setInstruction("");
+			onOpenChange(false);
+		} catch (error: unknown) {
+			const msg = error instanceof Error ? error.message : String(error);
+			toast.error("Diagram Generation Failed", { description: msg });
+		}
 	};
 
-	const isBusy = drawMutation.isPending;
 	const isUpdate = !!existingDiagramCode;
 	const titleText = isUpdate ? "Update Diagram" : "Generate Diagram";
 	const descriptionText = isUpdate
 		? "Enter instructions to modify the diagram."
 		: "Enter instructions for the diagram.";
-	const submitButtonText = drawMutation.isPending
-		? isUpdate
-			? "Updating..."
-			: "Generating..."
-		: isUpdate
-			? "Update Diagram"
-			: "Generate Diagram";
 	const placeholderText = isUpdate
 		? "e.g., Change NodeA to TaskA"
 		: "e.g., Sequence diagram for login flow";
@@ -103,8 +89,8 @@ export function InstructionModal({
 						</p>
 					</div>
 					<DialogFooter>
-						<Button type="submit" disabled={isBusy}>
-							{submitButtonText}
+						<Button type="submit">
+							{isUpdate ? "Update Diagram" : "Generate Diagram"}
 						</Button>
 					</DialogFooter>
 				</form>

@@ -1,7 +1,5 @@
-import {
-	Excalidraw,
-	convertToExcalidrawElements,
-} from "@excalidraw/excalidraw";
+import { Excalidraw } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
@@ -10,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
-import type { DiagramResponse } from "@/lib/queries";
-import { voiceToDiagramMutationFn } from "@/lib/queries";
-import type { VoiceToDiagramMutationPayload } from "@/lib/queries";
+import { generateDiagramVoice } from "@/lib/diagramFlow";
+import type {
+	DiagramResponse,
+	VoiceToDiagramMutationPayload,
+} from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { type UseMutationResult, useMutation } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Check, Loader2, Mic, Square, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Mic, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
@@ -73,19 +71,12 @@ function CustomHeader({
 	setIsModalOpen,
 	startRecording,
 	stopRecording,
-	voiceToDiagramMutation,
 	micStatus,
 }: {
 	mermaidCode: string;
 	setIsModalOpen: (open: boolean) => void;
 	startRecording: () => void;
 	stopRecording: () => void;
-	voiceToDiagramMutation: UseMutationResult<
-		DiagramResponse,
-		Error,
-		VoiceToDiagramMutationPayload,
-		unknown
-	>;
 	micStatus: string;
 }) {
 	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
@@ -99,18 +90,12 @@ function CustomHeader({
 				onClick={() =>
 					micStatus === "recording" ? stopRecording() : startRecording()
 				}
-				disabled={voiceToDiagramMutation.isPending}
+				disabled={micStatus === "recording"}
 				aria-label={
-					voiceToDiagramMutation.isPending
-						? "Generating diagram"
-						: micStatus === "recording"
-							? "Stop recording"
-							: "Start recording"
+					micStatus === "recording" ? "Stop recording" : "Start recording"
 				}
 			>
-				{voiceToDiagramMutation.isPending ? (
-					<Loader2 className="h-4 w-4 animate-spin" />
-				) : micStatus === "recording" ? (
+				{micStatus === "recording" ? (
 					<Square className="h-4 w-4 text-red-500 fill-red-500" />
 				) : (
 					<Mic className="h-4 w-4" />
@@ -137,12 +122,21 @@ function DrawRouteComponent() {
 			noiseSuppression: true,
 			autoGainControl: true,
 		},
-		onStop: (_blobUrl, blob) => {
-			// Automatically send recorded Blob on stop
-			voiceToDiagramMutation.mutate({
+		onStop: async (_blobUrl, blob) => {
+			const payload: VoiceToDiagramMutationPayload = {
 				audioBlob: blob,
 				existingDiagramCode: mermaidCode,
-			});
+			};
+			try {
+				const { response, elements } = await generateDiagramVoice(payload);
+				setOldElements(currentElements);
+				setNewElements(elements);
+				setLastResponse(response);
+				setIsModalOpen(false);
+			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : String(error);
+				toast.error("Voice-to-Diagram Failed", { description: msg });
+			}
 		},
 	});
 	const [mermaidCode, setMermaidCode] = useState<string>("");
@@ -158,57 +152,6 @@ function DrawRouteComponent() {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
-
-	const voiceToDiagramMutation = useMutation<
-		DiagramResponse,
-		Error,
-		VoiceToDiagramMutationPayload
-	>({
-		mutationFn: (payload) => voiceToDiagramMutationFn(payload),
-		onMutate: () => {
-			console.log("Voice-to-diagram mutation started");
-		},
-		onSuccess: (response) => {
-			console.log("Voice-to-diagram response received", response);
-			handleDiagramGenerated(response);
-		},
-		onError: (error) => {
-			console.error("Voice-to-Diagram Mutation Error:", error);
-			toast.error("Voice-to-Diagram Failed", { description: error.message });
-		},
-		onSettled: () => {},
-	});
-
-	const handleDiagramGenerated = async (response: DiagramResponse) => {
-		try {
-			const { diagram } = response;
-			console.log(
-				"Received Mermaid code:",
-				diagram,
-				"Instruction:",
-				response.instruction,
-			);
-
-			const { elements: rawElements } = await parseMermaidToExcalidraw(diagram);
-			const excalidrawElements = convertToExcalidrawElements(rawElements);
-			// trigger approval workflow
-			setOldElements(currentElements);
-			setNewElements(excalidrawElements);
-			setLastResponse(response);
-			setIsModalOpen(false);
-		} catch (error) {
-			console.error(
-				"Failed to parse Mermaid code received from backend:",
-				error,
-			);
-			console.error("--- Failing Mermaid Code ---");
-			console.error("--- End Failing Mermaid Code ---");
-			toast.error("Diagram Generation Error", {
-				description:
-					"Failed to parse the generated diagram. The AI might have produced invalid code. Please try again.",
-			});
-		}
-	};
 
 	// approval handlers
 	const approve = () => {
@@ -229,6 +172,19 @@ function DrawRouteComponent() {
 		setNewElements(null);
 		setOldElements(null);
 		setLastResponse(null);
+	};
+
+	/**
+	 * Receives RPC results from InstructionModal: update scene directly without extra fetch
+	 */
+	const handleInstructionGenerated = ({
+		response,
+		elements,
+	}: { response: DiagramResponse; elements: unknown[] }) => {
+		setOldElements(currentElements);
+		setNewElements(elements);
+		setLastResponse(response);
+		setIsModalOpen(false);
 	};
 
 	return (
@@ -262,10 +218,12 @@ function DrawRouteComponent() {
 												onClick={async () => {
 													const api = excalidrawAPIRef.current;
 													if (!api) return;
-													const { elements: rawElements } =
-														await parseMermaidToExcalidraw(item.diagram);
-													const excEl =
-														convertToExcalidrawElements(rawElements);
+													const result = await parseMermaidToExcalidraw(
+														item.diagram,
+													);
+													const excEl = convertToExcalidrawElements(
+														result.elements,
+													);
 													api.resetScene();
 													api.updateScene({ elements: excEl });
 													api.scrollToContent(excEl, { fitToContent: true });
@@ -325,7 +283,6 @@ function DrawRouteComponent() {
 								setIsModalOpen={setIsModalOpen}
 								startRecording={startRecording}
 								stopRecording={stopRecording}
-								voiceToDiagramMutation={voiceToDiagramMutation}
 								micStatus={micStatus}
 							/>
 						</header>
@@ -343,7 +300,7 @@ function DrawRouteComponent() {
 				<InstructionModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
-					onDiagramGenerated={handleDiagramGenerated}
+					onDiagramGenerated={handleInstructionGenerated}
 					existingDiagramCode={mermaidCode}
 				/>
 			</main>
