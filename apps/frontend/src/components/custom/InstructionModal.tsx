@@ -98,21 +98,23 @@ export function InstructionModal({
 							Press Ctrl+Enter or (Cmd+Enter) to submit
 						</p>
 					</div>
-					<DialogFooter className="flex items-center space-x-4">
-						<Button type="submit" disabled={isLoading || hasError}>
-							{isLoading
-								? isUpdate
-									? "Updating..."
-									: "Generating..."
-								: isUpdate
-									? "Update Diagram"
-									: "Generate Diagram"}
-						</Button>
-						{hasError && (
-							<p className="text-sm text-red-600">
-								Failed after multiple attempts. Please adjust your prompt.
-							</p>
-						)}
+					<DialogFooter>
+						<div className="flex w-full items-center justify-start space-x-4">
+							<Button type="submit" disabled={isLoading || hasError}>
+								{isLoading
+									? isUpdate
+										? "Updating..."
+										: "Generating..."
+									: isUpdate
+										? "Update Diagram"
+										: "Generate Diagram"}
+							</Button>
+							{hasError && (
+								<p className="text-sm text-red-600">
+									Failed after multiple attempts. Please adjust your prompt.
+								</p>
+							)}
+						</div>
 					</DialogFooter>
 				</form>
 			</DialogContent>
