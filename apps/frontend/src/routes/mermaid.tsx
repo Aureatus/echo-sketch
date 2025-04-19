@@ -2,6 +2,7 @@ import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/mermaid")({
 });
 
 function MermaidRouteComponent() {
+	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [mermaidCode, setMermaidCode] = useState("");
 	const [oldCode, setOldCode] = useState<string | null>(null);
@@ -71,24 +73,45 @@ function MermaidRouteComponent() {
 	useEffect(() => {
 		if (!oldCode || !currentRef.current) return;
 		const container = currentRef.current;
-		container.innerHTML = `<div class="mermaid">${oldCode}</div>`;
+		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${oldCode}</div>`;
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: resolvedTheme === "dark" ? "dark" : "default",
+			themeVariables: {
+				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
+			},
+		});
 		mermaid.run();
-	}, [oldCode]);
+	}, [oldCode, resolvedTheme]);
 
 	useEffect(() => {
 		if (!newCode || !newRef.current) return;
 		const container = newRef.current;
-		container.innerHTML = `<div class="mermaid">${newCode}</div>`;
+		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${newCode}</div>`;
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: resolvedTheme === "dark" ? "dark" : "default",
+			themeVariables: {
+				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
+			},
+		});
 		mermaid.run();
-	}, [newCode]);
+	}, [newCode, resolvedTheme]);
 
 	// Render accepted diagram in main view when preview is closed
 	useEffect(() => {
 		if (newCode !== null || !mermaidCode || !newRef.current) return;
 		const container = newRef.current;
-		container.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${mermaidCode}</div>`;
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: resolvedTheme === "dark" ? "dark" : "default",
+			themeVariables: {
+				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
+			},
+		});
 		mermaid.run();
-	}, [mermaidCode, newCode]);
+	}, [mermaidCode, newCode, resolvedTheme]);
 
 	const generate = async (instruction: string) => {
 		setOldCode(mermaidCode || null);
