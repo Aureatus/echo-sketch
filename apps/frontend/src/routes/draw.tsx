@@ -14,12 +14,111 @@ import type { DiagramResponse } from "@/lib/queries";
 import { voiceToDiagramMutationFn } from "@/lib/queries";
 import type { VoiceToDiagramMutationPayload } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useMutation } from "@tanstack/react-query";
+import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Loader2, Mic, Square } from "lucide-react";
+import { Check, Loader2, Mic, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
+
+function ExcalidrawWrapper({
+	elements,
+	theme,
+	version,
+	children,
+}: {
+	elements: unknown[];
+	theme: "light" | "dark";
+	version: "current" | "new";
+	children?: React.ReactNode;
+}) {
+	return (
+		<Card className="flex flex-col flex-1 m-1">
+			<CardHeader className="flex justify-between items-center">
+				<CardTitle>{version}</CardTitle>
+				{version === "new" && children}
+			</CardHeader>
+			<CardContent className="flex-1">
+				<Excalidraw
+					initialData={{
+						elements,
+						appState:
+							version === "new"
+								? { backgroundColor: "#dcfce7", viewBackgroundColor: "#dcfce7" }
+								: {},
+					}}
+					theme={version === "new" ? "light" : theme}
+					viewModeEnabled={true}
+					zenModeEnabled={true}
+					UIOptions={{
+						canvasActions: {
+							changeViewBackgroundColor: false,
+							loadScene: false,
+							clearCanvas: false,
+							export: false,
+							saveAsImage: false,
+							saveToActiveFile: false,
+							toggleTheme: false,
+						},
+						tools: { image: false },
+					}}
+				/>
+			</CardContent>
+		</Card>
+	);
+}
+
+function CustomHeader({
+	mermaidCode,
+	setIsModalOpen,
+	startRecording,
+	stopRecording,
+	voiceToDiagramMutation,
+	micStatus,
+}: {
+	mermaidCode: string;
+	setIsModalOpen: (open: boolean) => void;
+	startRecording: () => void;
+	stopRecording: () => void;
+	voiceToDiagramMutation: UseMutationResult<
+		DiagramResponse,
+		Error,
+		VoiceToDiagramMutationPayload,
+		unknown
+	>;
+	micStatus: string;
+}) {
+	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
+	return (
+		<div className="flex items-center space-x-2 mr-2">
+			<Button onClick={() => setIsModalOpen(true)}>{buttonText}</Button>
+			<Button
+				type="button"
+				variant="outline"
+				size="icon"
+				onClick={() =>
+					micStatus === "recording" ? stopRecording() : startRecording()
+				}
+				disabled={voiceToDiagramMutation.isPending}
+				aria-label={
+					voiceToDiagramMutation.isPending
+						? "Generating diagram"
+						: micStatus === "recording"
+							? "Stop recording"
+							: "Start recording"
+				}
+			>
+				{voiceToDiagramMutation.isPending ? (
+					<Loader2 className="h-4 w-4 animate-spin" />
+				) : micStatus === "recording" ? (
+					<Square className="h-4 w-4 text-red-500 fill-red-500" />
+				) : (
+					<Mic className="h-4 w-4" />
+				)}
+			</Button>
+		</div>
+	);
+}
 
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
@@ -47,6 +146,12 @@ function DrawRouteComponent() {
 		},
 	});
 	const [mermaidCode, setMermaidCode] = useState<string>("");
+	const [currentElements, setCurrentElements] = useState<unknown[]>([]);
+	const [oldElements, setOldElements] = useState<unknown[] | null>(null);
+	const [newElements, setNewElements] = useState<unknown[] | null>(null);
+	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
+		null,
+	);
 	// History items with unique timestamp key
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -75,42 +180,55 @@ function DrawRouteComponent() {
 	});
 
 	const handleDiagramGenerated = async (response: DiagramResponse) => {
-		const { diagram } = response;
-		console.log(
-			"Received Mermaid code:",
-			diagram,
-			"Instruction:",
-			response.instruction,
-		);
-
-		const api = excalidrawAPIRef.current;
-		if (!api) {
-			console.error("Excalidraw API not available yet.");
-			return;
-		}
-
 		try {
+			const { diagram } = response;
+			console.log(
+				"Received Mermaid code:",
+				diagram,
+				"Instruction:",
+				response.instruction,
+			);
+
 			const { elements: rawElements } = await parseMermaidToExcalidraw(diagram);
 			const excalidrawElements = convertToExcalidrawElements(rawElements);
-			api.resetScene();
-			api.updateScene({ elements: excalidrawElements });
-			api.scrollToContent(excalidrawElements, { fitToContent: true });
-			setMermaidCode(diagram);
+			// trigger approval workflow
+			setOldElements(currentElements);
+			setNewElements(excalidrawElements);
+			setLastResponse(response);
 			setIsModalOpen(false);
-			setHistory((prev) => [...prev, { ...response, timestamp: Date.now() }]);
 		} catch (error) {
 			console.error(
 				"Failed to parse Mermaid code received from backend:",
 				error,
 			);
 			console.error("--- Failing Mermaid Code ---");
-			console.error(diagram);
 			console.error("--- End Failing Mermaid Code ---");
 			toast.error("Diagram Generation Error", {
 				description:
 					"Failed to parse the generated diagram. The AI might have produced invalid code. Please try again.",
 			});
 		}
+	};
+
+	// approval handlers
+	const approve = () => {
+		if (newElements) {
+			setCurrentElements(newElements);
+			if (lastResponse)
+				setHistory((prev) => [
+					...prev,
+					{ ...lastResponse, timestamp: Date.now() },
+				]);
+			setMermaidCode(lastResponse?.diagram || mermaidCode);
+		}
+		setNewElements(null);
+		setOldElements(null);
+		setLastResponse(null);
+	};
+	const decline = () => {
+		setNewElements(null);
+		setOldElements(null);
+		setLastResponse(null);
 	};
 
 	return (
@@ -165,52 +283,63 @@ function DrawRouteComponent() {
 				)}
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
-				<div className="flex-1">
-					<Excalidraw
-						excalidrawAPI={(api) => {
-							excalidrawAPIRef.current = api;
-						}}
-						theme={resolvedTheme}
-						renderTopRightUI={() => {
-							const buttonText = mermaidCode
-								? "Update Diagram"
-								: "Generate Diagram";
-							return (
-								<div className="flex items-center space-x-2 mr-2">
-									<Button onClick={() => setIsModalOpen(true)}>
-										{buttonText}
+				{newElements ? (
+					<div className="flex-1 flex flex-col h-full">
+						<div className="flex-1 flex p-2">
+							<ExcalidrawWrapper
+								elements={oldElements || []}
+								theme={resolvedTheme}
+								version={"current"}
+							/>
+							<ExcalidrawWrapper
+								elements={newElements}
+								theme={resolvedTheme}
+								version={"new"}
+							>
+								<div className="flex space-x-2">
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={approve}
+										className="text-green-500"
+									>
+										<Check className="w-8 h-8" />
 									</Button>
 									<Button
-										type="button"
-										variant="outline"
+										variant="ghost"
 										size="icon"
-										onClick={() =>
-											micStatus === "recording"
-												? stopRecording()
-												: startRecording()
-										}
-										disabled={voiceToDiagramMutation.isPending}
-										aria-label={
-											voiceToDiagramMutation.isPending
-												? "Generating diagram"
-												: micStatus === "recording"
-													? "Stop recording"
-													: "Start recording"
-										}
+										onClick={decline}
+										className="text-red-500"
 									>
-										{voiceToDiagramMutation.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : micStatus === "recording" ? (
-											<Square className="h-4 w-4 text-red-500 fill-red-500" />
-										) : (
-											<Mic className="h-4 w-4" />
-										)}
+										<X className="w-8 h-8" />
 									</Button>
 								</div>
-							);
-						}}
-					/>
-				</div>
+							</ExcalidrawWrapper>
+						</div>
+					</div>
+				) : (
+					<div className="flex-1 flex flex-col h-full">
+						<header className="px-4 py-2 bg-card border-b">
+							<CustomHeader
+								mermaidCode={mermaidCode}
+								setIsModalOpen={setIsModalOpen}
+								startRecording={startRecording}
+								stopRecording={stopRecording}
+								voiceToDiagramMutation={voiceToDiagramMutation}
+								micStatus={micStatus}
+							/>
+						</header>
+						<div className="flex-1">
+							<Excalidraw
+								initialData={{ elements: currentElements, appState: {} }}
+								excalidrawAPI={(api) => {
+									excalidrawAPIRef.current = api;
+								}}
+								theme={resolvedTheme}
+							/>
+						</div>
+					</div>
+				)}
 				<InstructionModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
