@@ -25,13 +25,15 @@ export async function generateDiagramFlow<P>(
 		let attemptPayload: P = payload;
 		if (
 			attempt > 1 &&
-			errors.length > 0 &&
+			lastError !== undefined &&
 			(payload as DrawMutationPayload).instruction !== undefined
 		) {
 			const drawPayload = payload as DrawMutationPayload;
+			const lastMsg =
+				lastError instanceof Error ? lastError.message : String(lastError);
 			attemptPayload = {
 				...drawPayload,
-				instruction: `${drawPayload.instruction}\n\nPrevious errors encountered:\n${errors.join("\n")}`,
+				instruction: `${drawPayload.instruction}\n\nPrevious error encountered: ${lastMsg}`,
 			} as unknown as P;
 		}
 		try {
