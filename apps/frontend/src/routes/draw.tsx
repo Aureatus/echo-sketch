@@ -8,17 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
-import { generateDiagramVoice } from "@/lib/diagramFlow";
+import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { Check, ChevronLeft, ChevronRight, Mic, Square, X } from "lucide-react";
+import {
+	Check,
+	ChevronLeft,
+	ChevronRight,
+	Mic,
+	RefreshCw,
+	Square,
+	X,
+} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 function ExcalidrawWrapper({
 	elements,
@@ -87,8 +95,8 @@ function CustomHeader({
 	const micLabel = isVoiceLoading
 		? "Generating diagram..."
 		: micStatus === "recording"
-		? "Stop recording"
-		: "Start recording";
+			? "Stop recording"
+			: "Start recording";
 	return (
 		<div className="flex items-center space-x-2 mr-2">
 			<Button onClick={() => setIsModalOpen(true)}>{buttonText}</Button>
@@ -136,6 +144,7 @@ function DrawRouteComponent() {
 				audioBlob: blob,
 				existingDiagramCode: mermaidCode,
 			};
+			setLastVoicePayload(payload);
 			try {
 				setIsVoiceLoading(true);
 				const { response, elements } = await generateDiagramVoice(payload);
@@ -158,6 +167,9 @@ function DrawRouteComponent() {
 	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
 		null,
 	);
+	const [lastVoicePayload, setLastVoicePayload] =
+		useState<VoiceToDiagramMutationPayload | null>(null);
+	const [newVersionKey, setNewVersionKey] = useState(0);
 	// History items with unique timestamp key
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -185,6 +197,41 @@ function DrawRouteComponent() {
 		setNewElements(null);
 		setOldElements(null);
 		setLastResponse(null);
+	};
+	// retry handler: re-invoke the diagram endpoint with loading toast
+	const retry = async () => {
+		console.log("retry clicked", { lastVoicePayload, lastResponse });
+		if (lastVoicePayload) {
+			const toastId = toast.loading("Regenerating diagram...");
+			try {
+				const { response, elements } = await generateDiagramVoice({
+					audioBlob: lastVoicePayload.audioBlob,
+				});
+				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
+				setOldElements(currentElements);
+				setNewElements(elements);
+				setNewVersionKey((k) => k + 1);
+				setLastResponse(response);
+			} catch {
+				toast.error("Retry failed", { id: toastId });
+			}
+			return;
+		}
+		if (lastResponse) {
+			const toastId = toast.loading("Regenerating diagram...");
+			try {
+				const { response, elements } = await generateDiagramText({
+					instruction: lastResponse.instruction,
+				});
+				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
+				setOldElements(currentElements);
+				setNewElements(elements);
+				setNewVersionKey((k) => k + 1);
+				setLastResponse(response);
+			} catch {
+				toast.error("Retry failed", { id: toastId });
+			}
+		}
 	};
 
 	/**
@@ -263,6 +310,7 @@ function DrawRouteComponent() {
 								version={"current"}
 							/>
 							<ExcalidrawWrapper
+								key={newVersionKey}
 								elements={newElements}
 								theme={resolvedTheme}
 								version={"new"}
@@ -275,6 +323,17 @@ function DrawRouteComponent() {
 										className="text-green-500"
 									>
 										<Check className="w-8 h-8" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => {
+											console.log("retry button clicked");
+											retry();
+										}}
+										className="text-yellow-500"
+									>
+										<RefreshCw className="w-8 h-8" />
 									</Button>
 									<Button
 										variant="ghost"
