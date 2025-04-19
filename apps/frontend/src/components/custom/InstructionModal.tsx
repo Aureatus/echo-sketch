@@ -108,6 +108,12 @@ export function InstructionModal({
 									editor.style.width = `${editor.scrollWidth}px`;
 								}
 							}}
+							onKeyDown={(e: React.KeyboardEvent) => {
+								if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+									e.preventDefault();
+									formRef.current?.requestSubmit();
+								}
+							}}
 							placeholder={placeholderText}
 							modules={{
 								toolbar: [
