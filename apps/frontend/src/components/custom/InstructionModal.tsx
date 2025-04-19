@@ -8,16 +8,17 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
-import { drawMutationFn } from "../../lib/queries";
+import { generateDiagramText } from "../../lib/diagramFlow";
 import type { DiagramResponse, DrawMutationPayload } from "../../lib/queries";
 
 interface InstructionModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onDiagramGenerated: (response: DiagramResponse) => void;
+	onDiagramGenerated: (payload: {
+		response: DiagramResponse;
+		elements: unknown[];
+	}) => void;
 	existingDiagramCode?: string;
 }
 
@@ -29,47 +30,36 @@ export function InstructionModal({
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
-	const drawMutation = useMutation<DiagramResponse, Error, DrawMutationPayload>(
-		{
-			mutationFn: drawMutationFn,
-			onSuccess: (response) => {
-				onDiagramGenerated(response);
-				setInstruction("");
-			},
-			onError: (error) => {
-				console.error("Draw Mutation Error:", error);
-				toast.error("Diagram Generation Failed", {
-					description: error.message,
-				});
-			},
-		},
-	);
+	const [isLoading, setIsLoading] = useState(false);
+	const [hasError, setHasError] = useState(false);
 
-	const handleSubmit = (event: React.FormEvent) => {
+	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
-
-		const trimmedInstruction = instruction.trim();
-		if (!trimmedInstruction) return;
-
-		drawMutation.mutate({
-			instruction: trimmedInstruction,
+		setHasError(false);
+		const trimmed = instruction.trim();
+		if (!trimmed) return;
+		const payload: DrawMutationPayload = {
+			instruction: trimmed,
 			existingDiagramCode,
-		});
+		};
+		setIsLoading(true);
+		try {
+			const { response, elements } = await generateDiagramText(payload);
+			onDiagramGenerated({ response, elements });
+			setInstruction("");
+			onOpenChange(false);
+		} catch (error: unknown) {
+			setHasError(true);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
-	const isBusy = drawMutation.isPending;
 	const isUpdate = !!existingDiagramCode;
 	const titleText = isUpdate ? "Update Diagram" : "Generate Diagram";
 	const descriptionText = isUpdate
 		? "Enter instructions to modify the diagram."
 		: "Enter instructions for the diagram.";
-	const submitButtonText = drawMutation.isPending
-		? isUpdate
-			? "Updating..."
-			: "Generating..."
-		: isUpdate
-			? "Update Diagram"
-			: "Generate Diagram";
 	const placeholderText = isUpdate
 		? "e.g., Change NodeA to TaskA"
 		: "e.g., Sequence diagram for login flow";
@@ -87,7 +77,10 @@ export function InstructionModal({
 						<textarea
 							id="instruction"
 							value={instruction}
-							onChange={(e) => setInstruction(e.target.value)}
+							onChange={(e) => {
+								setInstruction(e.target.value);
+								if (hasError) setHasError(false);
+							}}
 							placeholder={placeholderText}
 							rows={5}
 							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -103,9 +96,22 @@ export function InstructionModal({
 						</p>
 					</div>
 					<DialogFooter>
-						<Button type="submit" disabled={isBusy}>
-							{submitButtonText}
-						</Button>
+						<div className="flex w-full items-center justify-start space-x-4">
+							<Button type="submit" disabled={isLoading || hasError}>
+								{isLoading
+									? isUpdate
+										? "Updating..."
+										: "Generating..."
+									: isUpdate
+										? "Update Diagram"
+										: "Generate Diagram"}
+							</Button>
+						</div>
+						{hasError && (
+							<p className="mt-2 text-sm text-red-600">
+								Failed after multiple attempts. Please adjust your prompt.
+							</p>
+						)}
 					</DialogFooter>
 				</form>
 			</DialogContent>
