@@ -31,6 +31,7 @@ export function InstructionModal({
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
+	const [isLoading, setIsLoading] = useState(false);
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -40,6 +41,7 @@ export function InstructionModal({
 			instruction: trimmed,
 			existingDiagramCode,
 		};
+		setIsLoading(true);
 		try {
 			const { response, elements } = await generateDiagramText(payload);
 			onDiagramGenerated({ response, elements });
@@ -48,6 +50,8 @@ export function InstructionModal({
 		} catch (error: unknown) {
 			const msg = error instanceof Error ? error.message : String(error);
 			toast.error("Diagram Generation Failed", { description: msg });
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -89,8 +93,14 @@ export function InstructionModal({
 						</p>
 					</div>
 					<DialogFooter>
-						<Button type="submit">
-							{isUpdate ? "Update Diagram" : "Generate Diagram"}
+						<Button type="submit" disabled={isLoading}>
+							{isLoading
+								? isUpdate
+									? "Updating..."
+									: "Generating..."
+								: isUpdate
+									? "Update Diagram"
+									: "Generate Diagram"}
 						</Button>
 					</DialogFooter>
 				</form>

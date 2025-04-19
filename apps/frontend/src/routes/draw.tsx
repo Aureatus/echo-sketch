@@ -18,6 +18,7 @@ import { Check, ChevronLeft, ChevronRight, Mic, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 function ExcalidrawWrapper({
 	elements,
@@ -72,14 +73,22 @@ function CustomHeader({
 	startRecording,
 	stopRecording,
 	micStatus,
+	isVoiceLoading,
 }: {
 	mermaidCode: string;
 	setIsModalOpen: (open: boolean) => void;
 	startRecording: () => void;
 	stopRecording: () => void;
 	micStatus: string;
+	isVoiceLoading: boolean;
 }) {
 	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
+	const micDisabled = micStatus === "recording" || isVoiceLoading;
+	const micLabel = isVoiceLoading
+		? "Generating diagram..."
+		: micStatus === "recording"
+		? "Stop recording"
+		: "Start recording";
 	return (
 		<div className="flex items-center space-x-2 mr-2">
 			<Button onClick={() => setIsModalOpen(true)}>{buttonText}</Button>
@@ -90,12 +99,12 @@ function CustomHeader({
 				onClick={() =>
 					micStatus === "recording" ? stopRecording() : startRecording()
 				}
-				disabled={micStatus === "recording"}
-				aria-label={
-					micStatus === "recording" ? "Stop recording" : "Start recording"
-				}
+				disabled={micDisabled}
+				aria-label={micLabel}
 			>
-				{micStatus === "recording" ? (
+				{isVoiceLoading ? (
+					<Loader2 className="h-4 w-4 animate-spin" />
+				) : micStatus === "recording" ? (
 					<Square className="h-4 w-4 text-red-500 fill-red-500" />
 				) : (
 					<Mic className="h-4 w-4" />
@@ -128,6 +137,7 @@ function DrawRouteComponent() {
 				existingDiagramCode: mermaidCode,
 			};
 			try {
+				setIsVoiceLoading(true);
 				const { response, elements } = await generateDiagramVoice(payload);
 				setOldElements(currentElements);
 				setNewElements(elements);
@@ -136,6 +146,8 @@ function DrawRouteComponent() {
 			} catch (error: unknown) {
 				const msg = error instanceof Error ? error.message : String(error);
 				toast.error("Voice-to-Diagram Failed", { description: msg });
+			} finally {
+				setIsVoiceLoading(false);
 			}
 		},
 	});
@@ -150,6 +162,7 @@ function DrawRouteComponent() {
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
@@ -284,6 +297,7 @@ function DrawRouteComponent() {
 								startRecording={startRecording}
 								stopRecording={stopRecording}
 								micStatus={micStatus}
+								isVoiceLoading={isVoiceLoading}
 							/>
 						</header>
 						<div className="flex-1">
