@@ -66,13 +66,17 @@ export function InstructionModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-full max-w-3xl max-h-[80vh] overflow-auto">
+			<DialogContent className="sm:max-w-7xl h-[80vh] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
 				</DialogHeader>
-				<form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-					<div className="space-y-2">
+				<form
+					ref={formRef}
+					onSubmit={handleSubmit}
+					className="flex flex-col flex-1 space-y-4"
+				>
+					<div className="flex flex-col flex-1 space-y-2">
 						<Label htmlFor="instruction">Instructions</Label>
 						<textarea
 							id="instruction"
@@ -82,8 +86,7 @@ export function InstructionModal({
 								if (hasError) setHasError(false);
 							}}
 							placeholder={placeholderText}
-							rows={5}
-							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+							className="w-full flex-1 resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 							onKeyDown={(e) => {
 								if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 									e.preventDefault();
