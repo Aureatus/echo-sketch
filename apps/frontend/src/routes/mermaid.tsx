@@ -199,20 +199,43 @@ function MermaidRouteComponent() {
 			<main className="flex-1 flex flex-col">
 				{newCode ? (
 					<div className="flex-1 flex">
-						<div className="w-1/2 p-2" ref={currentRef} />
 						<div className="w-1/2 p-2">
-							<div ref={newRef} />
-							<div className="flex space-x-2 mt-2">
-								<Button variant="ghost" onClick={approve}>
-									<Check />
-								</Button>
-								<Button variant="ghost" onClick={retry}>
-									<RefreshCw />
-								</Button>
-								<Button variant="ghost" onClick={decline}>
-									<X />
-								</Button>
+							<div className="mb-2">
+								<span className="text-sm font-medium">Current</span>
 							</div>
+							<div ref={currentRef} />
+						</div>
+						<div className="w-1/2 p-2">
+							<div className="flex justify-between items-center mb-2">
+								<span className="text-sm font-medium">New</span>
+								<div className="flex space-x-2">
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={approve}
+										className="text-green-500"
+									>
+										<Check className="w-8 h-8" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={retry}
+										className="text-yellow-500"
+									>
+										<RefreshCw className="w-8 h-8" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={decline}
+										className="text-red-500"
+									>
+										<X className="w-8 h-8" />
+									</Button>
+								</div>
+							</div>
+							<div ref={newRef} />
 						</div>
 					</div>
 				) : (
