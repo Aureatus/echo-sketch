@@ -106,12 +106,12 @@ export function InstructionModal({
 										? "Update Diagram"
 										: "Generate Diagram"}
 							</Button>
-							{hasError && (
-								<p className="text-sm text-red-600">
-									Failed after multiple attempts. Please adjust your prompt.
-								</p>
-							)}
 						</div>
+						{hasError && (
+							<p className="mt-2 text-sm text-red-600">
+								Failed after multiple attempts. Please adjust your prompt.
+							</p>
+						)}
 					</DialogFooter>
 				</form>
 			</DialogContent>
