@@ -40,8 +40,14 @@ function ExcalidrawWrapper({
 			</CardHeader>
 			<CardContent className="flex-1">
 				<Excalidraw
-					initialData={{ elements: elements, appState: {} }}
-					theme={theme}
+					initialData={{
+						elements,
+						appState:
+							version === "new"
+								? { backgroundColor: "#dcfce7", viewBackgroundColor: "#dcfce7" }
+								: {},
+					}}
+					theme={version === "new" ? "light" : theme}
 					viewModeEnabled={true}
 					zenModeEnabled={true}
 					UIOptions={{
