@@ -32,9 +32,11 @@ export function InstructionModal({
 	const [instruction, setInstruction] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [hasError, setHasError] = useState(false);
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
+		setHasError(false);
 		const trimmed = instruction.trim();
 		if (!trimmed) return;
 		const payload: DrawMutationPayload = {
@@ -49,6 +51,7 @@ export function InstructionModal({
 			onOpenChange(false);
 		} catch (error: unknown) {
 			const msg = error instanceof Error ? error.message : String(error);
+			setHasError(true);
 			toast.error("Diagram Generation Failed", { description: msg });
 		} finally {
 			setIsLoading(false);
@@ -77,7 +80,10 @@ export function InstructionModal({
 						<textarea
 							id="instruction"
 							value={instruction}
-							onChange={(e) => setInstruction(e.target.value)}
+							onChange={(e) => {
+								setInstruction(e.target.value);
+								if (hasError) setHasError(false);
+							}}
 							placeholder={placeholderText}
 							rows={5}
 							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -92,8 +98,8 @@ export function InstructionModal({
 							Press Ctrl+Enter or (Cmd+Enter) to submit
 						</p>
 					</div>
-					<DialogFooter>
-						<Button type="submit" disabled={isLoading}>
+					<DialogFooter className="flex items-center space-x-4">
+						<Button type="submit" disabled={isLoading || hasError}>
 							{isLoading
 								? isUpdate
 									? "Updating..."
@@ -102,6 +108,11 @@ export function InstructionModal({
 									? "Update Diagram"
 									: "Generate Diagram"}
 						</Button>
+						{hasError && (
+							<p className="text-sm text-red-600">
+								Failed after multiple attempts. Please adjust your prompt.
+							</p>
+						)}
 					</DialogFooter>
 				</form>
 			</DialogContent>
