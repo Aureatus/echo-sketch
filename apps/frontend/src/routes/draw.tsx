@@ -36,6 +36,20 @@ function ExcalidrawWrapper({
 				<Excalidraw
 					initialData={{ elements: elements, appState: {} }}
 					theme={theme}
+					viewModeEnabled={true}
+					zenModeEnabled={true}
+					UIOptions={{
+						canvasActions: {
+							changeViewBackgroundColor: false,
+							loadScene: false,
+							clearCanvas: false,
+							export: false,
+							saveAsImage: false,
+							saveToActiveFile: false,
+							toggleTheme: false,
+						},
+						tools: { image: false },
+					}}
 				/>
 			</CardContent>
 		</Card>
