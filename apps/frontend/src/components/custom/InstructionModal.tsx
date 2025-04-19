@@ -8,7 +8,9 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 import { generateDiagramText } from "../../lib/diagramFlow";
 import type { DiagramResponse, DrawMutationPayload } from "../../lib/queries";
 
@@ -30,6 +32,7 @@ export function InstructionModal({
 }: InstructionModalProps) {
 	const [instruction, setInstruction] = useState("");
 	const formRef = useRef<HTMLFormElement>(null);
+	const reactQuillRef = useRef<ReactQuill>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasError, setHasError] = useState(false);
 
@@ -64,9 +67,23 @@ export function InstructionModal({
 		? "e.g., Change NodeA to TaskA"
 		: "e.g., Sequence diagram for login flow";
 
+	// enable body scroll when modal is open
+	useEffect(() => {
+		document.body.style.overflow = open ? "auto" : "";
+	}, [open]);
+
+	useEffect(() => {
+		if (!open) return;
+		const editor = reactQuillRef.current?.getEditor().root;
+		if (editor) {
+			editor.style.height = "auto";
+			editor.style.height = `${editor.scrollHeight}px`;
+		}
+	}, [open]);
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-full max-w-3xl max-h-[80vh] overflow-auto">
+			<DialogContent className="w-full !max-w-none sm:!max-w-none md:!max-w-6xl max-h-[100vh] overflow-auto">
 				<DialogHeader>
 					<DialogTitle>{titleText}</DialogTitle>
 					<DialogDescription>{descriptionText}</DialogDescription>
@@ -74,25 +91,58 @@ export function InstructionModal({
 				<form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="instruction">Instructions</Label>
-						<textarea
+						<ReactQuill
+							ref={reactQuillRef}
 							id="instruction"
+							theme="snow"
 							value={instruction}
-							onChange={(e) => {
-								setInstruction(e.target.value);
+							onChange={(value: string) => {
+								setInstruction(value);
 								if (hasError) setHasError(false);
+								// auto-grow
+								const editor = reactQuillRef.current?.getEditor().root;
+								if (editor) {
+									editor.style.height = "auto";
+									editor.style.height = `${editor.scrollHeight}px`;
+									// auto-width
+									editor.style.width = `${editor.scrollWidth}px`;
+								}
 							}}
-							placeholder={placeholderText}
-							rows={5}
-							className="w-full min-h-[6rem] resize-y border border-input rounded-md px-3 py-2 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-							onKeyDown={(e) => {
-								if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+							onKeyDown={(e: React.KeyboardEvent) => {
+								if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
 									e.preventDefault();
 									formRef.current?.requestSubmit();
 								}
 							}}
+							placeholder={placeholderText}
+							modules={{
+								toolbar: [
+									"bold",
+									"italic",
+									"underline",
+									"strike",
+									"blockquote",
+									"code-block",
+									{ list: "ordered" },
+									{ list: "bullet" },
+									"link",
+									"image",
+								],
+								keyboard: {
+									bindings: {
+										submit: {
+											key: 13,
+											shortKey: true,
+											handler: () => formRef.current?.requestSubmit(),
+										},
+									},
+								},
+							}}
+							className="w-full border border-input rounded-md px-3 py-2 [&_.ql-editor]:overflow-auto [&_.ql-editor]:max-h-[60vh] [&_.ql-editor]:whitespace-pre-wrap [&_.ql-editor]:break-words [&_.ql-editor]:break-all [&_.ql-editor]:min-h-[12rem]"
 						/>
 						<p className="text-sm text-muted-foreground mt-1">
-							Press Ctrl+Enter or (Cmd+Enter) to submit
+							Use the toolbar above or type your instructions. Press Ctrl+Enter
+							or Cmd+Enter to submit
 						</p>
 					</div>
 					<DialogFooter>
