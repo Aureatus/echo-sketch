@@ -17,9 +17,44 @@ import type {
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef, useState } from "react";
+import mermaid from "mermaid";
+import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
+
+// Initialize Mermaid once with global guard and disable duplicate registrations
+declare global {
+	interface Window {
+		__MERMAID_INIT_DONE__?: boolean;
+	}
+}
+if (typeof window !== "undefined" && !window.__MERMAID_INIT_DONE__) {
+	const { mermaidAPI } = mermaid as any;
+	// no-op registerDiagram to avoid duplicates
+	if (mermaidAPI && mermaidAPI.registerDiagram) {
+		mermaidAPI.registerDiagram = () => {};
+	}
+	mermaid.initialize({ startOnLoad: false });
+	window.__MERMAID_INIT_DONE__ = true;
+}
+
+// Safe parse to handle duplicate registration errors
+async function safeParseMermaidToExcalidraw(diagram: string) {
+	try {
+		return await parseMermaidToExcalidraw(diagram);
+	} catch (e: any) {
+		if (e.message.includes("already registered")) {
+			const api = (mermaid as any).mermaidAPI;
+			if (api && api.diagrams) {
+				api.diagrams = {};
+			}
+			// reinitialize mermaid after clearing diagrams
+			mermaid.initialize({ startOnLoad: false });
+			return await parseMermaidToExcalidraw(diagram);
+		}
+		throw e;
+	}
+}
 
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
@@ -140,6 +175,22 @@ function DrawRouteComponent() {
 		setIsModalOpen(false);
 	};
 
+	// Initialize scene from latest history using the same logic as onItemClick
+	useEffect(() => {
+		const api = excalidrawAPIRef.current;
+		if (history.length > 0 && api) {
+			const last = history[history.length - 1];
+			safeParseMermaidToExcalidraw(last.diagram).then((res) => {
+				const excEl = convertToExcalidrawElements(res.elements);
+				api.resetScene();
+				api.updateScene({ elements: excEl });
+				api.scrollToContent(excEl, { fitToContent: true });
+				setMermaidCode(last.diagram);
+				setCurrentElements(excEl);
+			});
+		}
+	}, [history]);
+
 	return (
 		<div className="flex h-full">
 			<aside
@@ -161,7 +212,7 @@ function DrawRouteComponent() {
 						onItemClick={async (item) => {
 							const api = excalidrawAPIRef.current;
 							if (!api) return;
-							const result = await parseMermaidToExcalidraw(item.diagram);
+							const result = await safeParseMermaidToExcalidraw(item.diagram);
 							const excEl = convertToExcalidrawElements(result.elements);
 							api.resetScene();
 							api.updateScene({ elements: excEl });

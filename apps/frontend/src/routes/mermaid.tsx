@@ -122,6 +122,13 @@ function MermaidRouteComponent() {
 			.catch((err) => console.error("Mermaid render failed:", err));
 	}, [newCode, newVersionKey, resolvedTheme]);
 
+	// Apply latest persisted history entry on first load
+	useEffect(() => {
+		if (history.length > 0 && mermaidCode === "") {
+			setOldCode(history[history.length - 1].diagram);
+		}
+	}, [history]);
+
 	const approve = () => {
 		if (newCode && lastResponse) {
 			setOldCode(newCode);
