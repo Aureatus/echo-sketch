@@ -2,14 +2,8 @@ import { MermaidDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
+import { SidebarModal } from "@/components/layout/SidebarModal";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -19,7 +13,7 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, History } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -210,30 +204,22 @@ function MermaidRouteComponent() {
 
 	return (
 		<div className="flex flex-col md:flex-row h-full">
-			<Dialog open={isSidebarModalOpen} onOpenChange={setIsSidebarModalOpen}>
-				<DialogTrigger asChild>
-					<Button variant="outline" size="icon" className="md:hidden m-2">
-						<History className="h-5 w-5" />
-					</Button>
-				</DialogTrigger>
-				<DialogContent className="p-0 w-3/4 max-w-xs">
-					<DialogTitle className="sr-only">History</DialogTitle>
-					<DialogDescription className="sr-only">
-						Select an item from history
-					</DialogDescription>
-					<HistorySidebar
-						history={history}
-						isOpen={true}
-						selectedTimestamp={selectedTimestamp}
-						onItemClick={(item) => {
-							setSelectedTimestamp(item.timestamp);
-							setIsSidebarModalOpen(false);
-						}}
-					/>
-				</DialogContent>
-			</Dialog>
+			<SidebarModal
+				open={isSidebarModalOpen}
+				onOpenChange={setIsSidebarModalOpen}
+			>
+				<HistorySidebar
+					history={history}
+					isOpen={true}
+					selectedTimestamp={selectedTimestamp}
+					onItemClick={(item) => {
+						setSelectedTimestamp(item.timestamp);
+						setIsSidebarModalOpen(false);
+					}}
+				/>
+			</SidebarModal>
 			<aside
-				className={`${isSidebarOpen ? "w-64" : "w-16"} hidden md:flex flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
+				className={`${isSidebarOpen ? "w-64" : "w-16"} hidden md:flex flex-shrink-0 flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
 			>
 				<div className="flex justify-end mb-2">
 					<Button
