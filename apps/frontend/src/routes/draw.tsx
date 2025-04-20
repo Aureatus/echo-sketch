@@ -5,10 +5,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
+import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -161,42 +160,20 @@ function DrawRouteComponent() {
 					</Button>
 				</div>
 				{isSidebarOpen && (
-					<Card className="flex flex-col flex-1">
-						<CardHeader>
-							<CardTitle>History</CardTitle>
-						</CardHeader>
-						<CardContent className="flex-1 p-0">
-							<ScrollArea className="h-full p-2 w-full">
-								<ul className="space-y-2">
-									{history.map((item) => (
-										<li key={item.timestamp}>
-											<Button
-												variant="link"
-												size="default"
-												className="w-full justify-start p-0 whitespace-normal break-words"
-												onClick={async () => {
-													const api = excalidrawAPIRef.current;
-													if (!api) return;
-													const result = await parseMermaidToExcalidraw(
-														item.diagram,
-													);
-													const excEl = convertToExcalidrawElements(
-														result.elements,
-													);
-													api.resetScene();
-													api.updateScene({ elements: excEl });
-													api.scrollToContent(excEl, { fitToContent: true });
-													setMermaidCode(item.diagram);
-												}}
-											>
-												{item.instruction}
-											</Button>
-										</li>
-									))}
-								</ul>
-							</ScrollArea>
-						</CardContent>
-					</Card>
+					<HistorySidebar
+						history={history}
+						isOpen={isSidebarOpen}
+						onItemClick={async (item) => {
+							const api = excalidrawAPIRef.current;
+							if (!api) return;
+							const result = await parseMermaidToExcalidraw(item.diagram);
+							const excEl = convertToExcalidrawElements(result.elements);
+							api.resetScene();
+							api.updateScene({ elements: excEl });
+							api.scrollToContent(excEl, { fitToContent: true });
+							setMermaidCode(item.diagram);
+						}}
+					/>
 				)}
 			</aside>
 			<main className="flex-1 flex flex-col h-full">

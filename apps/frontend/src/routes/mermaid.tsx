@@ -1,12 +1,15 @@
 import { MermaidDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
+import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
+import { Button } from "@/components/ui/button";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import { createFileRoute } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -63,6 +66,7 @@ function MermaidRouteComponent() {
 	type HistoryItem = DiagramResponse & { timestamp: number };
 	const [history, setHistory] = useState<HistoryItem[]>([]);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
 	const currentRef = useRef<HTMLDivElement>(null);
 	const newRef = useRef<HTMLDivElement>(null);
@@ -176,25 +180,28 @@ function MermaidRouteComponent() {
 
 	return (
 		<div className="flex h-full">
-			<aside className="w-64 flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border">
-				<div className="flex justify-end mb-2">{/* collapse sidebar */}</div>
-				<div className="flex flex-col flex-1">
-					<h3 className="px-2 py-1 font-semibold">History</h3>
-					<div className="flex-1 overflow-auto p-2 space-y-2">
-						{history.map((item) => (
-							<button
-								type="button"
-								key={item.timestamp}
-								className="w-full text-left text-sm text-blue-600"
-								onClick={() => {
-									setOldCode(item.diagram);
-								}}
-							>
-								{item.instruction}
-							</button>
-						))}
-					</div>
+			<aside
+				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
+			>
+				<div className="flex justify-end mb-2">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={() => setIsSidebarOpen((prev) => !prev)}
+					>
+						{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+					</Button>
 				</div>
+				<HistorySidebar
+					history={history}
+					isOpen={isSidebarOpen}
+					onItemClick={(item) => {
+						// revert to selected history entry
+						setNewCode(null);
+						setLastResponse(null);
+						setOldCode(item.diagram);
+					}}
+				/>
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
 				{newCode ? (
