@@ -17,6 +17,9 @@ importers:
       hono:
         specifier: ^4.7.6
         version: 4.7.6
+      mermaid:
+        specifier: ^11.6.0
+        version: 11.6.0
       sst:
         specifier: 3.13.10
         version: 3.13.10
