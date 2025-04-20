@@ -3,6 +3,7 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/mermaid")({
 });
 
 function MermaidRouteComponent() {
+	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const {
 		status: micStatus,
@@ -72,6 +74,11 @@ function MermaidRouteComponent() {
 	const newRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
+		// re-init mermaid with theme
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: resolvedTheme === "dark" ? "dark" : "default",
+		});
 		// guard ref
 		if (!currentRef.current) return;
 		// clear container
@@ -87,9 +94,14 @@ function MermaidRouteComponent() {
 				}
 			})
 			.catch((err) => console.error("Mermaid render failed:", err));
-	}, [mermaidCode]);
+	}, [mermaidCode, resolvedTheme]);
 
 	useEffect(() => {
+		// re-init mermaid with theme
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: resolvedTheme === "dark" ? "dark" : "default",
+		});
 		if (!newRef.current) return;
 		console.log("mermaid newRef effect:", {
 			key: newVersionKey,
@@ -108,7 +120,7 @@ function MermaidRouteComponent() {
 				}
 			})
 			.catch((err) => console.error("Mermaid render failed:", err));
-	}, [newCode, newVersionKey]);
+	}, [newCode, newVersionKey, resolvedTheme]);
 
 	const approve = () => {
 		if (newCode) {
