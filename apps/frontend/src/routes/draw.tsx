@@ -8,6 +8,7 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/draw")({
 
 function DrawRouteComponent() {
 	const { resolvedTheme } = useTheme();
+	const { history, addHistory } = usePersistedHistory();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const {
 		status: micStatus,
@@ -68,9 +70,6 @@ function DrawRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	// History items with unique timestamp key
-	type HistoryItem = DiagramResponse & { timestamp: number };
-	const [history, setHistory] = useState<HistoryItem[]>([]);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
@@ -78,14 +77,10 @@ function DrawRouteComponent() {
 
 	// approval handlers
 	const approve = () => {
-		if (newElements) {
+		if (newElements && lastResponse) {
 			setCurrentElements(newElements);
-			if (lastResponse)
-				setHistory((prev) => [
-					...prev,
-					{ ...lastResponse, timestamp: Date.now() },
-				]);
-			setMermaidCode(lastResponse?.diagram || mermaidCode);
+			addHistory({ ...lastResponse, timestamp: Date.now() });
+			setMermaidCode(lastResponse.diagram || mermaidCode);
 		}
 		setNewElements(null);
 		setOldElements(null);

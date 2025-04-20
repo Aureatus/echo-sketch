@@ -3,6 +3,7 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -65,8 +66,7 @@ function MermaidRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	type HistoryItem = DiagramResponse & { timestamp: number };
-	const [history, setHistory] = useState<HistoryItem[]>([]);
+	const { history, addHistory } = usePersistedHistory();
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -123,13 +123,9 @@ function MermaidRouteComponent() {
 	}, [newCode, newVersionKey, resolvedTheme]);
 
 	const approve = () => {
-		if (newCode) {
+		if (newCode && lastResponse) {
 			setOldCode(newCode);
-			if (lastResponse)
-				setHistory((prev) => [
-					...prev,
-					{ ...lastResponse, timestamp: Date.now() },
-				]);
+			addHistory({ ...lastResponse, timestamp: Date.now() });
 		}
 		setNewCode(null);
 		setLastResponse(null);
