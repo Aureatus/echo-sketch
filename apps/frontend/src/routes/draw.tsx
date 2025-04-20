@@ -4,6 +4,7 @@ import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
+import { DrawGenerationHeader } from "@/components/custom/GenerationHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,58 +16,10 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { ChevronLeft, ChevronRight, Mic, Square } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
-
-function CustomHeader({
-	mermaidCode,
-	setIsModalOpen,
-	startRecording,
-	stopRecording,
-	micStatus,
-	isVoiceLoading,
-}: {
-	mermaidCode: string;
-	setIsModalOpen: (open: boolean) => void;
-	startRecording: () => void;
-	stopRecording: () => void;
-	micStatus: string;
-	isVoiceLoading: boolean;
-}) {
-	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
-	const micDisabled = micStatus === "recording" || isVoiceLoading;
-	const micLabel = isVoiceLoading
-		? "Generating diagram..."
-		: micStatus === "recording"
-			? "Stop recording"
-			: "Start recording";
-	return (
-		<div className="flex items-center space-x-2 mr-2">
-			<Button onClick={() => setIsModalOpen(true)}>{buttonText}</Button>
-			<Button
-				type="button"
-				variant="outline"
-				size="icon"
-				onClick={() =>
-					micStatus === "recording" ? stopRecording() : startRecording()
-				}
-				disabled={micDisabled}
-				aria-label={micLabel}
-			>
-				{isVoiceLoading ? (
-					<Loader2 className="h-4 w-4 animate-spin" />
-				) : micStatus === "recording" ? (
-					<Square className="h-4 w-4 text-red-500 fill-red-500" />
-				) : (
-					<Mic className="h-4 w-4" />
-				)}
-			</Button>
-		</div>
-	);
-}
 
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
@@ -260,7 +213,7 @@ function DrawRouteComponent() {
 				) : (
 					<div className="flex-1 flex flex-col h-full">
 						<header className="px-4 py-2 bg-card border-b">
-							<CustomHeader
+							<DrawGenerationHeader
 								mermaidCode={mermaidCode}
 								setIsModalOpen={setIsModalOpen}
 								startRecording={startRecording}

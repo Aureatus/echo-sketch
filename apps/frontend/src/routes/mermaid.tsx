@@ -1,4 +1,5 @@
 import { MermaidDiffView } from "@/components/custom/DiffView";
+import { MermaidGenerationHeader } from "@/components/custom/GenerationHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +11,6 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import { createFileRoute } from "@tanstack/react-router";
-import { Mic, Square } from "lucide-react";
-import { Loader2 } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -208,27 +207,13 @@ function MermaidRouteComponent() {
 					/>
 				) : (
 					<>
-						<header className="px-4 py-2 bg-card border-b flex items-center">
-							<Button onClick={() => setIsModalOpen(true)}>
-								Generate Diagram
-							</Button>
-							<Button
-								type="button"
-								onClick={() =>
-									micStatus === "recording" ? stopRecording() : startRecording()
-								}
-								disabled={isVoiceLoading || micStatus === "recording"}
-								className="ml-2"
-							>
-								{isVoiceLoading ? (
-									<Loader2 className="animate-spin" />
-								) : micStatus === "recording" ? (
-									<Square />
-								) : (
-									<Mic />
-								)}
-							</Button>
-						</header>
+						<MermaidGenerationHeader
+							setIsModalOpen={setIsModalOpen}
+							micStatus={micStatus}
+							isVoiceLoading={isVoiceLoading}
+							startRecording={startRecording}
+							stopRecording={stopRecording}
+						/>
 						<div className="flex-1 p-4">
 							{mermaidCode && <div ref={newRef} />}
 						</div>
