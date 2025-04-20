@@ -198,16 +198,18 @@ function MermaidRouteComponent() {
 			</aside>
 			<main className="flex-1 flex flex-col">
 				{newCode ? (
-					<div className="flex-1 flex">
-						<div className="w-1/2 p-2">
-							<div className="mb-2">
-								<span className="text-sm font-medium">Current</span>
-							</div>
-							<div ref={currentRef} />
-						</div>
-						<div className="w-1/2 p-2">
-							<div className="flex justify-between items-center mb-2">
-								<span className="text-sm font-medium">New</span>
+					<div className="flex-1 flex p-2">
+						<Card className="flex flex-col flex-1 m-1">
+							<CardHeader>
+								<CardTitle>Current</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div ref={currentRef} />
+							</CardContent>
+						</Card>
+						<Card className="flex flex-col flex-1 m-1">
+							<CardHeader className="flex justify-between items-center">
+								<CardTitle>New</CardTitle>
 								<div className="flex space-x-2">
 									<Button
 										variant="ghost"
@@ -234,9 +236,11 @@ function MermaidRouteComponent() {
 										<X className="w-8 h-8" />
 									</Button>
 								</div>
-							</div>
-							<div ref={newRef} />
-						</div>
+							</CardHeader>
+							<CardContent>
+								<div ref={newRef} />
+							</CardContent>
+						</Card>
 					</div>
 				) : (
 					<>
