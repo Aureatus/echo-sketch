@@ -3,6 +3,8 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
+import { Route as DrawRoute } from "@/routes/draw";
+import { Route as MermaidRoute } from "@/routes/mermaid";
 
 export default function Header() {
 	// removed dynamic preload code
@@ -18,13 +20,13 @@ export default function Header() {
 			<div className="container flex h-full max-w-screen-2xl items-center">
 				<nav className="flex flex-row items-center gap-4">
 					<div className="font-bold">
-						<Link to="/draw" className="[&.active]:font-bold">
+						<Link to={DrawRoute.id} className="[&.active]:font-bold">
 							Draw
 						</Link>
 					</div>
 
 					<div className="font-bold">
-						<Link to="/mermaid" className="[&.active]:font-bold">
+						<Link to={MermaidRoute.id} className="[&.active]:font-bold">
 							Mermaid
 						</Link>
 					</div>
