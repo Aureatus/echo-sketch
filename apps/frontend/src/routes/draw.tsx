@@ -29,11 +29,6 @@ declare global {
 	}
 }
 if (typeof window !== "undefined" && !window.__MERMAID_INIT_DONE__) {
-	const { mermaidAPI } = mermaid as any;
-	// no-op registerDiagram to avoid duplicates
-	if (mermaidAPI && mermaidAPI.registerDiagram) {
-		mermaidAPI.registerDiagram = () => {};
-	}
 	mermaid.initialize({ startOnLoad: false });
 	window.__MERMAID_INIT_DONE__ = true;
 }
@@ -42,17 +37,13 @@ if (typeof window !== "undefined" && !window.__MERMAID_INIT_DONE__) {
 async function safeParseMermaidToExcalidraw(diagram: string) {
 	try {
 		return await parseMermaidToExcalidraw(diagram);
-	} catch (e: any) {
-		if (e.message.includes("already registered")) {
-			const api = (mermaid as any).mermaidAPI;
-			if (api && api.diagrams) {
-				api.diagrams = {};
-			}
+	} catch (err: unknown) {
+		if (err instanceof Error && err.message.includes("already registered")) {
 			// reinitialize mermaid after clearing diagrams
 			mermaid.initialize({ startOnLoad: false });
 			return await parseMermaidToExcalidraw(diagram);
 		}
-		throw e;
+		throw err;
 	}
 }
 
@@ -107,9 +98,9 @@ function DrawRouteComponent() {
 	const [newVersionKey, setNewVersionKey] = useState(0);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-	const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(
-		null,
-	);
+	const [selectedTimestamp, setSelectedTimestamp] = useState<
+		number | undefined
+	>();
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 

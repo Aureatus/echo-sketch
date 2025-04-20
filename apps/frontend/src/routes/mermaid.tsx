@@ -69,9 +69,9 @@ function MermaidRouteComponent() {
 	const { history, addHistory } = usePersistedHistory("mermaidHistory");
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(
-		null,
-	);
+	const [selectedTimestamp, setSelectedTimestamp] = useState<
+		number | undefined
+	>();
 
 	const currentRef = useRef<HTMLDivElement>(null);
 	const newRef = useRef<HTMLDivElement>(null);
@@ -132,7 +132,7 @@ function MermaidRouteComponent() {
 			setOldCode(last.diagram);
 			setSelectedTimestamp(last.timestamp);
 		}
-	}, [history]);
+	}, [history, mermaidCode]);
 
 	const approve = () => {
 		if (newCode && lastResponse) {
