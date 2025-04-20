@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Moon, Sun } from "lucide-react";
 
-import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function Header() {
+	// removed dynamic preload code
+
 	const { theme, setTheme } = useTheme();
 
 	const toggleTheme = () => {
@@ -16,14 +18,14 @@ export default function Header() {
 			<div className="container flex h-full max-w-screen-2xl items-center">
 				<nav className="flex flex-row items-center gap-4">
 					<div className="font-bold">
-						<Link to="/" className="[&.active]:font-bold">
-							Home
+						<Link to="/draw" className="[&.active]:font-bold">
+							Draw
 						</Link>
 					</div>
 
 					<div className="font-bold">
-						<Link to="/demo/tanstack-query" className="[&.active]:font-bold">
-							TanStack Query
+						<Link to="/mermaid" className="[&.active]:font-bold">
+							Mermaid
 						</Link>
 					</div>
 				</nav>
