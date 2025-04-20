@@ -1,10 +1,6 @@
 import { MermaidDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
@@ -16,29 +12,14 @@ import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
 
-// Initialize mermaid without auto start
 mermaid.initialize({ startOnLoad: false });
-
-// mermaid initialized elsewhere
-
-type HistoryItem = { instruction: string; diagram: string; timestamp: number };
 
 export const Route = createFileRoute("/mermaid")({
 	component: MermaidRouteComponent,
 });
 
 function MermaidRouteComponent() {
-	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [mermaidCode, setMermaidCode] = useState("");
-	const [oldCode, setOldCode] = useState<string | null>(null);
-	const [newCode, setNewCode] = useState<string | null>(null);
-	const [history, setHistory] = useState<HistoryItem[]>([]);
-	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
-		null,
-	);
-	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-
 	const {
 		status: micStatus,
 		startRecording,
@@ -49,154 +30,173 @@ function MermaidRouteComponent() {
 			noiseSuppression: true,
 			autoGainControl: true,
 		},
-		onStop: async (_url, blob) => {
+		onStop: async (_blobUrl, blob) => {
 			const payload: VoiceToDiagramMutationPayload = {
 				audioBlob: blob,
 				existingDiagramCode: mermaidCode,
 			};
+			setLastVoicePayload(payload);
 			try {
 				setIsVoiceLoading(true);
 				const { response } = await generateDiagramVoice(payload);
-				// elements unused
-				handleInstructionGenerated({ response });
-			} catch (e) {
-				toast.error("Voice generation failed");
+				setOldCode(mermaidCode);
+				setNewCode(response.diagram);
+				setLastResponse(response);
+				setIsModalOpen(false);
+			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : String(error);
+				toast.error("Voice-to-Diagram Failed", { description: msg });
 			} finally {
 				setIsVoiceLoading(false);
 			}
 		},
 	});
 
+	const [mermaidCode, setOldCode] = useState("");
+	const [newCode, setNewCode] = useState<string | null>(null);
+	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
+		null,
+	);
+	const [lastVoicePayload, setLastVoicePayload] =
+		useState<VoiceToDiagramMutationPayload | null>(null);
+	const [newVersionKey, setNewVersionKey] = useState(0);
+	type HistoryItem = DiagramResponse & { timestamp: number };
+	const [history, setHistory] = useState<HistoryItem[]>([]);
+	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+
 	const currentRef = useRef<HTMLDivElement>(null);
 	const newRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!oldCode || !currentRef.current) return;
-		const container = currentRef.current;
-		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${oldCode}</div>`;
-		mermaid.initialize({
-			startOnLoad: false,
-			theme: resolvedTheme === "dark" ? "dark" : "default",
-			themeVariables: {
-				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
-			},
-		});
-		mermaid.run();
-	}, [oldCode, resolvedTheme]);
+		// guard ref
+		if (!currentRef.current) return;
+		// clear container
+		currentRef.current.innerHTML = "";
+		if (!mermaidCode.trim()) return;
+		const id = "mermaid-current";
+		mermaid
+			.render(id, mermaidCode)
+			.then(({ svg, bindFunctions }) => {
+				if (currentRef.current) {
+					currentRef.current.innerHTML = svg;
+					bindFunctions?.(currentRef.current);
+				}
+			})
+			.catch((err) => console.error("Mermaid render failed:", err));
+	}, [mermaidCode]);
 
 	useEffect(() => {
-		if (!newCode || !newRef.current) return;
-		const container = newRef.current;
-		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${newCode}</div>`;
-		mermaid.initialize({
-			startOnLoad: false,
-			theme: resolvedTheme === "dark" ? "dark" : "default",
-			themeVariables: {
-				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
-			},
+		if (!newRef.current) return;
+		console.log("mermaid newRef effect:", {
+			key: newVersionKey,
+			code: newCode,
 		});
-		mermaid.run();
-	}, [newCode, resolvedTheme]);
-
-	// Render accepted diagram in main view when preview is closed
-	useEffect(() => {
-		if (newCode !== null || !mermaidCode || !newRef.current) return;
-		const container = newRef.current;
-		container.innerHTML = `<div class="mermaid selection:bg-blue-200 selection:text-black dark:selection:bg-gray-600 dark:selection:text-white">${mermaidCode}</div>`;
-		mermaid.initialize({
-			startOnLoad: false,
-			theme: resolvedTheme === "dark" ? "dark" : "default",
-			themeVariables: {
-				textColor: resolvedTheme === "dark" ? "#e5e7eb" : "#111827",
-			},
-		});
-		mermaid.run();
-	}, [mermaidCode, newCode, resolvedTheme]);
-
-	const generate = async (instruction: string) => {
-		setOldCode(mermaidCode || null);
-		try {
-			const { response } = await generateDiagramText({ instruction });
-			const code = response.diagram;
-			setNewCode(code);
-			setLastResponse(response);
-			setMermaidCode(code);
-			setHistory((h) => [
-				...h,
-				{ instruction, diagram: code, timestamp: Date.now() },
-			]);
-		} catch {
-			toast.error("Diagram generation failed");
-		}
-	};
+		// clear container and skip empty
+		newRef.current.innerHTML = "";
+		if (!newCode) return;
+		const id = `mermaid-new-${newVersionKey}`;
+		mermaid
+			.render(id, newCode)
+			.then(({ svg, bindFunctions }) => {
+				if (newRef.current) {
+					newRef.current.innerHTML = svg;
+					bindFunctions?.(newRef.current);
+				}
+			})
+			.catch((err) => console.error("Mermaid render failed:", err));
+	}, [newCode, newVersionKey]);
 
 	const approve = () => {
-		setOldCode(null);
+		if (newCode) {
+			setOldCode(newCode);
+			if (lastResponse)
+				setHistory((prev) => [
+					...prev,
+					{ ...lastResponse, timestamp: Date.now() },
+				]);
+		}
 		setNewCode(null);
+		setLastResponse(null);
 	};
 
 	const decline = () => {
 		setNewCode(null);
+		setLastResponse(null);
 	};
 
-	const retry = () => {
+	const retry = async () => {
+		console.log("mermaid retry", { lastVoicePayload, lastResponse });
+		if (lastVoicePayload) {
+			const toastId = toast.loading("Regenerating diagram...");
+			try {
+				// include existingDiagramCode for context
+				const { response } = await generateDiagramVoice(lastVoicePayload);
+				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
+				setOldCode(mermaidCode);
+				setNewCode(response.diagram);
+				setNewVersionKey((k) => k + 1);
+				setLastResponse(response);
+			} catch {
+				toast.error("Voice retry failed, switching to text retry", {
+					id: toastId,
+				});
+				// fallback to text retry next time
+				setLastVoicePayload(null);
+			}
+			return;
+		}
+		console.log("mermaid text retry", { lastResponse, mermaidCode });
 		if (lastResponse) {
-			// Retry with previous instruction
-			generate(lastResponse.instruction);
-			toast.loading("Retrying diagram...");
+			const toastId = toast.loading("Regenerating diagram...");
+			try {
+				const { response } = await generateDiagramText({
+					instruction: `${lastResponse.instruction}\n\nPlease regenerate with slight variations`,
+					existingDiagramCode: mermaidCode,
+				});
+				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
+				setOldCode(mermaidCode);
+				setNewCode(response.diagram);
+				setNewVersionKey((k) => k + 1);
+				setLastResponse(response);
+			} catch (error) {
+				console.error("Text retry failed:", error);
+				toast.error("Retry failed", { id: toastId });
+			}
 		}
 	};
 
 	const handleInstructionGenerated = ({
 		response,
 	}: { response: DiagramResponse }) => {
-		// use instruction from lastResponse
-		const instruction = lastResponse?.instruction || "";
-		const code = response.diagram;
 		setOldCode(mermaidCode);
-		setNewCode(code);
+		setNewCode(response.diagram);
 		setLastResponse(response);
-		setMermaidCode(code);
-		setHistory((h) => [
-			...h,
-			{ instruction, diagram: code, timestamp: Date.now() },
-		]);
 		setIsModalOpen(false);
 	};
 
 	return (
 		<div className="flex h-full">
-			<aside className="w-64 flex-shrink-0 flex flex-col p-2 bg-card text-card-foreground border-r">
-				<div className="flex justify-end mb-2">
-					{/* Sidebar toggle omitted */}
+			<aside className="w-64 flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border">
+				<div className="flex justify-end mb-2">{/* collapse sidebar */}</div>
+				<div className="flex flex-col flex-1">
+					<h3 className="px-2 py-1 font-semibold">History</h3>
+					<div className="flex-1 overflow-auto p-2 space-y-2">
+						{history.map((item) => (
+							<button
+								type="button"
+								key={item.timestamp}
+								className="w-full text-left text-sm text-blue-600"
+								onClick={() => {
+									setOldCode(item.diagram);
+								}}
+							>
+								{item.instruction}
+							</button>
+						))}
+					</div>
 				</div>
-				<Card className="flex flex-col flex-1">
-					<CardHeader>
-						<CardTitle>History</CardTitle>
-					</CardHeader>
-					<CardContent className="p-2">
-						<ScrollArea className="h-full">
-							<ul>
-								{history.map((item) => (
-									<li key={item.timestamp}>
-										<Button
-											variant="link"
-											onClick={() => {
-												setMermaidCode(item.diagram);
-												setOldCode(null);
-												setNewCode(null);
-											}}
-										>
-											{item.instruction}
-										</Button>
-									</li>
-								))}
-							</ul>
-						</ScrollArea>
-					</CardContent>
-				</Card>
 			</aside>
-			<main className="flex-1 flex flex-col">
+			<main className="flex-1 flex flex-col h-full">
 				{newCode ? (
 					<MermaidDiffView
 						currentRef={currentRef}
@@ -206,19 +206,21 @@ function MermaidRouteComponent() {
 						decline={decline}
 					/>
 				) : (
-					<>
-						<GenerationHeader
-							mermaidCode={mermaidCode}
-							setIsModalOpen={setIsModalOpen}
-							startRecording={startRecording}
-							stopRecording={stopRecording}
-							micStatus={micStatus}
-							isVoiceLoading={isVoiceLoading}
-						/>
-						<div className="flex-1 p-4">
-							{mermaidCode && <div ref={newRef} />}
+					<div className="flex-1 flex flex-col h-full">
+						<header className="px-4 py-2 bg-card border-b">
+							<GenerationHeader
+								mermaidCode={mermaidCode}
+								setIsModalOpen={setIsModalOpen}
+								startRecording={startRecording}
+								stopRecording={stopRecording}
+								micStatus={micStatus}
+								isVoiceLoading={isVoiceLoading}
+							/>
+						</header>
+						<div className="flex-1 overflow-auto p-4">
+							<div ref={currentRef} />
 						</div>
-					</>
+					</div>
 				)}
 				<InstructionModal
 					open={isModalOpen}
