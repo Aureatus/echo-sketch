@@ -14,7 +14,6 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as MermaidImport } from './routes/mermaid'
 import { Route as DrawImport } from './routes/draw'
 import { Route as IndexImport } from './routes/index'
-import { Route as DemoTanstackQueryImport } from './routes/demo.tanstack-query'
 
 // Create/Update Routes
 
@@ -33,12 +32,6 @@ const DrawRoute = DrawImport.update({
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const DemoTanstackQueryRoute = DemoTanstackQueryImport.update({
-  id: '/demo/tanstack-query',
-  path: '/demo/tanstack-query',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -67,13 +60,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MermaidImport
       parentRoute: typeof rootRoute
     }
-    '/demo/tanstack-query': {
-      id: '/demo/tanstack-query'
-      path: '/demo/tanstack-query'
-      fullPath: '/demo/tanstack-query'
-      preLoaderRoute: typeof DemoTanstackQueryImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
@@ -83,14 +69,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/draw': typeof DrawRoute
   '/mermaid': typeof MermaidRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/draw': typeof DrawRoute
   '/mermaid': typeof MermaidRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
 }
 
 export interface FileRoutesById {
@@ -98,15 +82,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/draw': typeof DrawRoute
   '/mermaid': typeof MermaidRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/draw' | '/mermaid' | '/demo/tanstack-query'
+  fullPaths: '/' | '/draw' | '/mermaid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/draw' | '/mermaid' | '/demo/tanstack-query'
-  id: '__root__' | '/' | '/draw' | '/mermaid' | '/demo/tanstack-query'
+  to: '/' | '/draw' | '/mermaid'
+  id: '__root__' | '/' | '/draw' | '/mermaid'
   fileRoutesById: FileRoutesById
 }
 
@@ -114,14 +97,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DrawRoute: typeof DrawRoute
   MermaidRoute: typeof MermaidRoute
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DrawRoute: DrawRoute,
   MermaidRoute: MermaidRoute,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
 }
 
 export const routeTree = rootRoute
@@ -136,8 +117,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/draw",
-        "/mermaid",
-        "/demo/tanstack-query"
+        "/mermaid"
       ]
     },
     "/": {
@@ -148,9 +128,6 @@ export const routeTree = rootRoute
     },
     "/mermaid": {
       "filePath": "mermaid.tsx"
-    },
-    "/demo/tanstack-query": {
-      "filePath": "demo.tanstack-query.tsx"
     }
   }
 }
