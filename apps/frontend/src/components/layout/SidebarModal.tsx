@@ -23,8 +23,9 @@ export function SidebarModal({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
-				<Button variant="outline" size="icon" className="md:hidden m-2">
+				<Button variant="outline" className="m-2 flex items-center space-x-1">
 					<History className="h-5 w-5" />
+					<span>History</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="p-0 w-3/4 max-w-xs">

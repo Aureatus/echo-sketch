@@ -16,7 +16,7 @@ export default function Header() {
 	};
 
 	return (
-		<header className="relative sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
+		<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
 			<div className="container flex h-full max-w-screen-2xl items-center">
 				<nav className="flex flex-row items-center gap-4">
 					<div className="font-bold">

@@ -1,7 +1,8 @@
 import { MermaidDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
+import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
-import { HistoryPanel } from "@/components/layout/HistoryPanel";
+import { SidebarModal } from "@/components/layout/SidebarModal";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/mermaid")({
 function MermaidRouteComponent() {
 	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const {
 		status: micStatus,
 		startRecording,
@@ -199,12 +201,28 @@ function MermaidRouteComponent() {
 
 	return (
 		<div className="flex flex-col md:flex-row h-full">
-			<HistoryPanel
-				history={history}
-				selectedTimestamp={selectedTimestamp ?? 0}
-				onSelect={(item) => setSelectedTimestamp(item.timestamp)}
-			/>
 			<main className="flex-1 flex flex-col h-full">
+				<header className="px-4 py-2 bg-card border-b flex justify-between items-center">
+					<GenerationHeader
+						mermaidCode={mermaidCode}
+						setIsModalOpen={setIsModalOpen}
+						startRecording={startRecording}
+						stopRecording={stopRecording}
+						micStatus={micStatus}
+						isVoiceLoading={isVoiceLoading}
+					/>
+					<SidebarModal open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+						<HistorySidebar
+							history={history}
+							isOpen={true}
+							selectedTimestamp={selectedTimestamp ?? 0}
+							onItemClick={(item) => {
+								setSelectedTimestamp(item.timestamp);
+								setIsHistoryOpen(false);
+							}}
+						/>
+					</SidebarModal>
+				</header>
 				{newCode ? (
 					<MermaidDiffView
 						currentRef={currentRef}
@@ -215,16 +233,6 @@ function MermaidRouteComponent() {
 					/>
 				) : (
 					<div className="flex-1 flex flex-col h-full">
-						<header className="px-4 py-2 bg-card border-b">
-							<GenerationHeader
-								mermaidCode={mermaidCode}
-								setIsModalOpen={setIsModalOpen}
-								startRecording={startRecording}
-								stopRecording={stopRecording}
-								micStatus={micStatus}
-								isVoiceLoading={isVoiceLoading}
-							/>
-						</header>
 						<div className="flex-1 overflow-auto p-4">
 							<div ref={currentRef} />
 						</div>

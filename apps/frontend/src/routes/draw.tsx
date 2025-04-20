@@ -5,8 +5,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
+import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
-import { HistoryPanel } from "@/components/layout/HistoryPanel";
+import { SidebarModal } from "@/components/layout/SidebarModal";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -58,6 +59,7 @@ function DrawRouteComponent() {
 		"drawHistorySelection",
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const {
 		status: micStatus,
 		startRecording,
@@ -194,13 +196,28 @@ function DrawRouteComponent() {
 
 	return (
 		<div className="flex flex-col md:flex-row h-full">
-			<HistoryPanel
-				history={history}
-				selectedTimestamp={selectedTimestamp ?? 0}
-				onSelect={(item) => setSelectedTimestamp(item.timestamp)}
-			/>
-
 			<main className="flex-1 flex flex-col h-full">
+				<header className="px-4 py-2 bg-card border-b flex justify-between items-center">
+					<GenerationHeader
+						mermaidCode={mermaidCode}
+						setIsModalOpen={setIsModalOpen}
+						startRecording={startRecording}
+						stopRecording={stopRecording}
+						micStatus={micStatus}
+						isVoiceLoading={isVoiceLoading}
+					/>
+					<SidebarModal open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+						<HistorySidebar
+							history={history}
+							isOpen={true}
+							selectedTimestamp={selectedTimestamp ?? 0}
+							onItemClick={(item) => {
+								setSelectedTimestamp(item.timestamp);
+								setIsHistoryOpen(false);
+							}}
+						/>
+					</SidebarModal>
+				</header>
 				{newElements ? (
 					<DrawDiffView
 						oldElements={oldElements || []}
@@ -213,16 +230,6 @@ function DrawRouteComponent() {
 					/>
 				) : (
 					<div className="flex-1 flex flex-col h-full">
-						<header className="px-4 py-2 bg-card border-b">
-							<GenerationHeader
-								mermaidCode={mermaidCode}
-								setIsModalOpen={setIsModalOpen}
-								startRecording={startRecording}
-								stopRecording={stopRecording}
-								micStatus={micStatus}
-								isVoiceLoading={isVoiceLoading}
-							/>
-						</header>
 						<div className="flex-1">
 							<Excalidraw
 								initialData={{ elements: currentElements, appState: {} }}
