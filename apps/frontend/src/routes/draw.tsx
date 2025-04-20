@@ -27,7 +27,7 @@ export const Route = createFileRoute("/draw")({
 
 function DrawRouteComponent() {
 	const { resolvedTheme } = useTheme();
-	const { history, addHistory } = usePersistedHistory();
+	const { history, addHistory } = usePersistedHistory("drawHistory");
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const {
 		status: micStatus,

@@ -66,7 +66,7 @@ function MermaidRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	const { history, addHistory } = usePersistedHistory();
+	const { history, addHistory } = usePersistedHistory("mermaidHistory");
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
