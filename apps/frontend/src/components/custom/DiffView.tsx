@@ -2,49 +2,27 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ApprovalHeader } from "./ApprovalHeader";
 
-export function ExcalidrawWrapper({
-	elements,
-	theme,
-	version,
+// Shared panel layout for diffs
+function DiffPanel({
+	title,
 	children,
+	headerExtra,
 }: {
-	elements: unknown[];
-	theme: "light" | "dark";
-	version: "current" | "new";
-	children?: React.ReactNode;
+	title: string;
+	children: React.ReactNode;
+	headerExtra?: React.ReactNode;
 }) {
 	return (
 		<Card className="flex flex-col flex-1 m-1">
-			<CardHeader className="flex justify-between items-center">
-				<CardTitle>{version}</CardTitle>
-				{version === "new" && children}
+			<CardHeader
+				className={
+					headerExtra ? "flex justify-between items-center" : undefined
+				}
+			>
+				<CardTitle>{title}</CardTitle>
+				{headerExtra}
 			</CardHeader>
-			<CardContent className="flex-1">
-				<Excalidraw
-					initialData={{
-						elements,
-						appState:
-							version === "new"
-								? { backgroundColor: "#dcfce7", viewBackgroundColor: "#dcfce7" }
-								: {},
-					}}
-					theme={version === "new" ? "light" : theme}
-					viewModeEnabled={true}
-					zenModeEnabled={true}
-					UIOptions={{
-						canvasActions: {
-							changeViewBackgroundColor: false,
-							loadScene: false,
-							clearCanvas: false,
-							export: false,
-							saveAsImage: false,
-							saveToActiveFile: false,
-							toggleTheme: false,
-						},
-						tools: { image: false },
-					}}
-				/>
-			</CardContent>
+			<CardContent className="flex-1">{children}</CardContent>
 		</Card>
 	);
 }
@@ -69,19 +47,58 @@ export function DrawDiffView({
 	return (
 		<div className="flex-1 flex flex-col h-full">
 			<div className="flex-1 flex p-2">
-				<ExcalidrawWrapper
-					elements={oldElements || []}
-					theme={resolvedTheme}
-					version={"current"}
-				/>
-				<ExcalidrawWrapper
+				<DiffPanel title="Current">
+					<Excalidraw
+						initialData={{ elements: oldElements || [], appState: {} }}
+						theme={resolvedTheme}
+						viewModeEnabled
+						zenModeEnabled
+						UIOptions={{
+							canvasActions: {
+								changeViewBackgroundColor: false,
+								loadScene: false,
+								clearCanvas: false,
+								export: false,
+								saveAsImage: false,
+								saveToActiveFile: false,
+								toggleTheme: false,
+							},
+							tools: { image: false },
+						}}
+					/>
+				</DiffPanel>
+				<DiffPanel
+					title="New"
+					headerExtra={
+						<ApprovalHeader approve={approve} retry={retry} decline={decline} />
+					}
 					key={newVersionKey}
-					elements={newElements}
-					theme={resolvedTheme}
-					version={"new"}
 				>
-					<ApprovalHeader approve={approve} retry={retry} decline={decline} />
-				</ExcalidrawWrapper>
+					<Excalidraw
+						initialData={{
+							elements: newElements,
+							appState: {
+								backgroundColor: "#dcfce7",
+								viewBackgroundColor: "#dcfce7",
+							},
+						}}
+						theme="light"
+						viewModeEnabled
+						zenModeEnabled
+						UIOptions={{
+							canvasActions: {
+								changeViewBackgroundColor: false,
+								loadScene: false,
+								clearCanvas: false,
+								export: false,
+								saveAsImage: false,
+								saveToActiveFile: false,
+								toggleTheme: false,
+							},
+							tools: { image: false },
+						}}
+					/>
+				</DiffPanel>
 			</div>
 		</div>
 	);
@@ -102,23 +119,17 @@ export function MermaidDiffView({
 }) {
 	return (
 		<div className="flex-1 flex p-2">
-			<Card className="flex flex-col flex-1 m-1">
-				<CardHeader>
-					<CardTitle>Current</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div ref={currentRef} />
-				</CardContent>
-			</Card>
-			<Card className="flex flex-col flex-1 m-1">
-				<CardHeader className="flex justify-between items-center">
-					<CardTitle>New</CardTitle>
+			<DiffPanel title="Current">
+				<div ref={currentRef} />
+			</DiffPanel>
+			<DiffPanel
+				title="New"
+				headerExtra={
 					<ApprovalHeader approve={approve} retry={retry} decline={decline} />
-				</CardHeader>
-				<CardContent>
-					<div ref={newRef} />
-				</CardContent>
-			</Card>
+				}
+			>
+				<div ref={newRef} />
+			</DiffPanel>
 		</div>
 	);
 }
