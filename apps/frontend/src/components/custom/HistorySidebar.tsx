@@ -11,12 +11,14 @@ export interface HistorySidebarProps {
 	history: HistoryItem[];
 	isOpen?: boolean;
 	onItemClick: (item: HistoryItem) => void | Promise<void>;
+	selectedTimestamp?: number;
 }
 
 export function HistorySidebar({
 	history,
 	isOpen = true,
 	onItemClick,
+	selectedTimestamp,
 }: HistorySidebarProps) {
 	if (!isOpen) return null;
 	return (
@@ -32,7 +34,11 @@ export function HistorySidebar({
 								<Button
 									variant="link"
 									size="default"
-									className="w-full justify-start p-0 whitespace-normal break-words"
+									className={`w-full justify-start p-0 whitespace-normal break-words ${
+										selectedTimestamp === item.timestamp
+											? "bg-primary text-primary-foreground font-semibold"
+											: ""
+									}`}
 									onClick={() => onItemClick(item)}
 								>
 									{item.instruction}

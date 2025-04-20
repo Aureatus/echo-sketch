@@ -8,6 +8,8 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import { usePersistedHistory } from "@/hooks/usePersistedHistory";
+import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -16,9 +18,35 @@ import type {
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef, useState } from "react";
+import mermaid from "mermaid";
+import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
+
+// Initialize Mermaid once with global guard and disable duplicate registrations
+declare global {
+	interface Window {
+		__MERMAID_INIT_DONE__?: boolean;
+	}
+}
+if (typeof window !== "undefined" && !window.__MERMAID_INIT_DONE__) {
+	mermaid.initialize({ startOnLoad: false });
+	window.__MERMAID_INIT_DONE__ = true;
+}
+
+// Safe parse to handle duplicate registration errors
+async function safeParseMermaidToExcalidraw(diagram: string) {
+	try {
+		return await parseMermaidToExcalidraw(diagram);
+	} catch (err: unknown) {
+		if (err instanceof Error && err.message.includes("already registered")) {
+			// reinitialize mermaid after clearing diagrams
+			mermaid.initialize({ startOnLoad: false });
+			return await parseMermaidToExcalidraw(diagram);
+		}
+		throw err;
+	}
+}
 
 export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
@@ -26,6 +54,11 @@ export const Route = createFileRoute("/draw")({
 
 function DrawRouteComponent() {
 	const { resolvedTheme } = useTheme();
+	const { history, addHistory } = usePersistedHistory("drawHistory");
+	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
+		history,
+		"drawHistorySelection",
+	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const {
 		status: micStatus,
@@ -68,9 +101,6 @@ function DrawRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	// History items with unique timestamp key
-	type HistoryItem = DiagramResponse & { timestamp: number };
-	const [history, setHistory] = useState<HistoryItem[]>([]);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
@@ -78,14 +108,12 @@ function DrawRouteComponent() {
 
 	// approval handlers
 	const approve = () => {
-		if (newElements) {
+		if (newElements && lastResponse) {
+			const timestamp = Date.now();
 			setCurrentElements(newElements);
-			if (lastResponse)
-				setHistory((prev) => [
-					...prev,
-					{ ...lastResponse, timestamp: Date.now() },
-				]);
-			setMermaidCode(lastResponse?.diagram || mermaidCode);
+			addHistory({ ...lastResponse, timestamp });
+			setSelectedTimestamp(timestamp);
+			setMermaidCode(lastResponse.diagram || mermaidCode);
 		}
 		setNewElements(null);
 		setOldElements(null);
@@ -145,6 +173,26 @@ function DrawRouteComponent() {
 		setIsModalOpen(false);
 	};
 
+	// render scene when history or selection changes
+	useEffect(() => {
+		if (history.length === 0) return;
+		const ts = selectedTimestamp !== undefined
+			? selectedTimestamp
+			: history[history.length - 1].timestamp;
+		const item = history.find((i) => i.timestamp === ts) || history[history.length - 1];
+		const api = excalidrawAPIRef.current;
+		if (!api) return;
+
+		safeParseMermaidToExcalidraw(item.diagram).then((res) => {
+			const excEl = convertToExcalidrawElements(res.elements);
+			api.resetScene();
+			api.updateScene({ elements: excEl });
+			api.scrollToContent(excEl, { fitToContent: true });
+			setMermaidCode(item.diagram);
+			setCurrentElements(excEl);
+		});
+	}, [history, selectedTimestamp]);
+
 	return (
 		<div className="flex h-full">
 			<aside
@@ -163,15 +211,17 @@ function DrawRouteComponent() {
 					<HistorySidebar
 						history={history}
 						isOpen={isSidebarOpen}
+						selectedTimestamp={selectedTimestamp}
 						onItemClick={async (item) => {
 							const api = excalidrawAPIRef.current;
 							if (!api) return;
-							const result = await parseMermaidToExcalidraw(item.diagram);
+							const result = await safeParseMermaidToExcalidraw(item.diagram);
 							const excEl = convertToExcalidrawElements(result.elements);
 							api.resetScene();
 							api.updateScene({ elements: excEl });
 							api.scrollToContent(excEl, { fitToContent: true });
 							setMermaidCode(item.diagram);
+							setSelectedTimestamp(item.timestamp);
 						}}
 					/>
 				)}

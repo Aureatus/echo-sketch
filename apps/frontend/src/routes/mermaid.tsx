@@ -3,6 +3,8 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import { usePersistedHistory } from "@/hooks/usePersistedHistory";
+import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -65,10 +67,13 @@ function MermaidRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	type HistoryItem = DiagramResponse & { timestamp: number };
-	const [history, setHistory] = useState<HistoryItem[]>([]);
+	const { history, addHistory } = usePersistedHistory("mermaidHistory");
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
+		history,
+		"mermaidHistorySelection",
+	);
 
 	const currentRef = useRef<HTMLDivElement>(null);
 	const newRef = useRef<HTMLDivElement>(null);
@@ -122,14 +127,19 @@ function MermaidRouteComponent() {
 			.catch((err) => console.error("Mermaid render failed:", err));
 	}, [newCode, newVersionKey, resolvedTheme]);
 
+	// initialize code when history or selection changes
+	useEffect(() => {
+		if (history.length === 0) return;
+		const ts = selectedTimestamp ?? history[history.length - 1].timestamp;
+		const item =
+			history.find((i) => i.timestamp === ts) || history[history.length - 1];
+		setOldCode(item.diagram);
+	}, [history, selectedTimestamp]);
+
 	const approve = () => {
-		if (newCode) {
-			setOldCode(newCode);
-			if (lastResponse)
-				setHistory((prev) => [
-					...prev,
-					{ ...lastResponse, timestamp: Date.now() },
-				]);
+		if (newCode && lastResponse) {
+			addHistory({ ...lastResponse, timestamp: Date.now() });
+			setSelectedTimestamp(Date.now());
 		}
 		setNewCode(null);
 		setLastResponse(null);
@@ -207,12 +217,8 @@ function MermaidRouteComponent() {
 				<HistorySidebar
 					history={history}
 					isOpen={isSidebarOpen}
-					onItemClick={(item) => {
-						// revert to selected history entry
-						setNewCode(null);
-						setLastResponse(null);
-						setOldCode(item.diagram);
-					}}
+					selectedTimestamp={selectedTimestamp}
+					onItemClick={(item) => setSelectedTimestamp(item.timestamp)}
 				/>
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
