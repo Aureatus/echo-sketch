@@ -5,10 +5,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
-import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
-import { SidebarModal } from "@/components/layout/SidebarModal";
-import { Button } from "@/components/ui/button";
+import { HistoryPanel } from "@/components/layout/HistoryPanel";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -18,7 +16,6 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { ChevronLeft, ChevronRight, History } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -102,9 +99,7 @@ function DrawRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-	const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
@@ -199,51 +194,12 @@ function DrawRouteComponent() {
 
 	return (
 		<div className="flex flex-col md:flex-row h-full">
-			<SidebarModal
-				open={isSidebarModalOpen}
-				onOpenChange={setIsSidebarModalOpen}
-			>
-				<HistorySidebar
-					history={history}
-					isOpen={true}
-					selectedTimestamp={selectedTimestamp}
-					onItemClick={(item) => {
-						setSelectedTimestamp(item.timestamp);
-						setIsSidebarModalOpen(false);
-					}}
-				/>
-			</SidebarModal>
-			<aside
-				className={`${isSidebarOpen ? "w-64" : "w-16"} hidden md:flex flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
-			>
-				<div className="flex justify-end mb-2">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => setIsSidebarOpen((prev) => !prev)}
-					>
-						{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
-					</Button>
-				</div>
-				{isSidebarOpen && (
-					<HistorySidebar
-						history={history}
-						isOpen={isSidebarOpen}
-						selectedTimestamp={selectedTimestamp}
-						onItemClick={async (item) => {
-							const api = excalidrawAPIRef.current;
-							if (!api) return;
-							const result = await safeParseMermaidToExcalidraw(item.diagram);
-							const excEl = convertToExcalidrawElements(result.elements);
-							api.resetScene();
-							api.updateScene({ elements: excEl });
-							api.scrollToContent(excEl, { fitToContent: true });
-							setMermaidCode(item.diagram);
-							setSelectedTimestamp(item.timestamp);
-						}}
-					/>
-				)}
-			</aside>
+			<HistoryPanel
+				history={history}
+				selectedTimestamp={selectedTimestamp ?? 0}
+				onSelect={(item) => setSelectedTimestamp(item.timestamp)}
+			/>
+
 			<main className="flex-1 flex flex-col h-full">
 				{newElements ? (
 					<DrawDiffView
