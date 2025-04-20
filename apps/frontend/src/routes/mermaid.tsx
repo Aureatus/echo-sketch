@@ -69,6 +69,9 @@ function MermaidRouteComponent() {
 	const { history, addHistory } = usePersistedHistory("mermaidHistory");
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(
+		null,
+	);
 
 	const currentRef = useRef<HTMLDivElement>(null);
 	const newRef = useRef<HTMLDivElement>(null);
@@ -125,7 +128,9 @@ function MermaidRouteComponent() {
 	// Apply latest persisted history entry on first load
 	useEffect(() => {
 		if (history.length > 0 && mermaidCode === "") {
-			setOldCode(history[history.length - 1].diagram);
+			const last = history[history.length - 1];
+			setOldCode(last.diagram);
+			setSelectedTimestamp(last.timestamp);
 		}
 	}, [history]);
 
@@ -210,11 +215,13 @@ function MermaidRouteComponent() {
 				<HistorySidebar
 					history={history}
 					isOpen={isSidebarOpen}
+					selectedTimestamp={selectedTimestamp}
 					onItemClick={(item) => {
 						// revert to selected history entry
 						setNewCode(null);
 						setLastResponse(null);
 						setOldCode(item.diagram);
+						setSelectedTimestamp(item.timestamp);
 					}}
 				/>
 			</aside>

@@ -107,14 +107,19 @@ function DrawRouteComponent() {
 	const [newVersionKey, setNewVersionKey] = useState(0);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+	const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(
+		null,
+	);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
 	// approval handlers
 	const approve = () => {
 		if (newElements && lastResponse) {
+			const timestamp = Date.now();
 			setCurrentElements(newElements);
-			addHistory({ ...lastResponse, timestamp: Date.now() });
+			addHistory({ ...lastResponse, timestamp });
+			setSelectedTimestamp(timestamp);
 			setMermaidCode(lastResponse.diagram || mermaidCode);
 		}
 		setNewElements(null);
@@ -187,6 +192,7 @@ function DrawRouteComponent() {
 				api.scrollToContent(excEl, { fitToContent: true });
 				setMermaidCode(last.diagram);
 				setCurrentElements(excEl);
+				setSelectedTimestamp(last.timestamp);
 			});
 		}
 	}, [history]);
@@ -209,6 +215,7 @@ function DrawRouteComponent() {
 					<HistorySidebar
 						history={history}
 						isOpen={isSidebarOpen}
+						selectedTimestamp={selectedTimestamp}
 						onItemClick={async (item) => {
 							const api = excalidrawAPIRef.current;
 							if (!api) return;
@@ -218,6 +225,7 @@ function DrawRouteComponent() {
 							api.updateScene({ elements: excEl });
 							api.scrollToContent(excEl, { fitToContent: true });
 							setMermaidCode(item.diagram);
+							setSelectedTimestamp(item.timestamp);
 						}}
 					/>
 				)}
