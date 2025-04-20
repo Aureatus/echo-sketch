@@ -1,4 +1,4 @@
-import { ApprovalHeader } from "@/components/custom/ApprovalHeader";
+import { MermaidDiffView } from "@/components/custom/DiffView";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -199,29 +199,13 @@ function MermaidRouteComponent() {
 			</aside>
 			<main className="flex-1 flex flex-col">
 				{newCode ? (
-					<div className="flex-1 flex p-2">
-						<Card className="flex flex-col flex-1 m-1">
-							<CardHeader>
-								<CardTitle>Current</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div ref={currentRef} />
-							</CardContent>
-						</Card>
-						<Card className="flex flex-col flex-1 m-1">
-							<CardHeader className="flex justify-between items-center">
-								<CardTitle>New</CardTitle>
-								<ApprovalHeader
-									approve={approve}
-									retry={retry}
-									decline={decline}
-								/>
-							</CardHeader>
-							<CardContent>
-								<div ref={newRef} />
-							</CardContent>
-						</Card>
-					</div>
+					<MermaidDiffView
+						currentRef={currentRef}
+						newRef={newRef}
+						approve={approve}
+						retry={retry}
+						decline={decline}
+					/>
 				) : (
 					<>
 						<header className="px-4 py-2 bg-card border-b flex items-center">

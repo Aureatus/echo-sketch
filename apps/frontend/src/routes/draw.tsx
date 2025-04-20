@@ -3,7 +3,7 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
-import { ApprovalHeader } from "@/components/custom/ApprovalHeader";
+import { DrawDiffView } from "@/components/custom/DiffView";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,53 +20,6 @@ import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
-
-function ExcalidrawWrapper({
-	elements,
-	theme,
-	version,
-	children,
-}: {
-	elements: unknown[];
-	theme: "light" | "dark";
-	version: "current" | "new";
-	children?: React.ReactNode;
-}) {
-	return (
-		<Card className="flex flex-col flex-1 m-1">
-			<CardHeader className="flex justify-between items-center">
-				<CardTitle>{version}</CardTitle>
-				{version === "new" && children}
-			</CardHeader>
-			<CardContent className="flex-1">
-				<Excalidraw
-					initialData={{
-						elements,
-						appState:
-							version === "new"
-								? { backgroundColor: "#dcfce7", viewBackgroundColor: "#dcfce7" }
-								: {},
-					}}
-					theme={version === "new" ? "light" : theme}
-					viewModeEnabled={true}
-					zenModeEnabled={true}
-					UIOptions={{
-						canvasActions: {
-							changeViewBackgroundColor: false,
-							loadScene: false,
-							clearCanvas: false,
-							export: false,
-							saveAsImage: false,
-							saveToActiveFile: false,
-							toggleTheme: false,
-						},
-						tools: { image: false },
-					}}
-				/>
-			</CardContent>
-		</Card>
-	);
-}
 
 function CustomHeader({
 	mermaidCode,
@@ -295,27 +248,15 @@ function DrawRouteComponent() {
 			</aside>
 			<main className="flex-1 flex flex-col h-full">
 				{newElements ? (
-					<div className="flex-1 flex flex-col h-full">
-						<div className="flex-1 flex p-2">
-							<ExcalidrawWrapper
-								elements={oldElements || []}
-								theme={resolvedTheme}
-								version={"current"}
-							/>
-							<ExcalidrawWrapper
-								key={newVersionKey}
-								elements={newElements}
-								theme={resolvedTheme}
-								version={"new"}
-							>
-								<ApprovalHeader
-									approve={approve}
-									retry={retry}
-									decline={decline}
-								/>
-							</ExcalidrawWrapper>
-						</div>
-					</div>
+					<DrawDiffView
+						oldElements={oldElements || []}
+						resolvedTheme={resolvedTheme}
+						newVersionKey={newVersionKey}
+						newElements={newElements}
+						approve={approve}
+						retry={retry}
+						decline={decline}
+					/>
 				) : (
 					<div className="flex-1 flex flex-col h-full">
 						<header className="px-4 py-2 bg-card border-b">
