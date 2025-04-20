@@ -1,43 +1,7 @@
 import { Loader2, Mic, Square } from "lucide-react";
 import { Button } from "../ui/button";
 
-export function MermaidGenerationHeader({
-	setIsModalOpen,
-	micStatus,
-	isVoiceLoading,
-	startRecording,
-	stopRecording,
-}: {
-	setIsModalOpen: (open: boolean) => void;
-	micStatus: string;
-	isVoiceLoading: boolean;
-	startRecording: () => void;
-	stopRecording: () => void;
-}) {
-	return (
-		<header className="px-4 py-2 bg-card border-b flex items-center">
-			<Button onClick={() => setIsModalOpen(true)}>Generate Diagram</Button>
-			<Button
-				type="button"
-				onClick={() =>
-					micStatus === "recording" ? stopRecording() : startRecording()
-				}
-				disabled={isVoiceLoading || micStatus === "recording"}
-				className="ml-2"
-			>
-				{isVoiceLoading ? (
-					<Loader2 className="animate-spin" />
-				) : micStatus === "recording" ? (
-					<Square />
-				) : (
-					<Mic />
-				)}
-			</Button>
-		</header>
-	);
-}
-
-export function DrawGenerationHeader({
+export function GenerationHeader({
 	mermaidCode,
 	setIsModalOpen,
 	startRecording,

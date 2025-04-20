@@ -4,7 +4,7 @@ import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
-import { DrawGenerationHeader } from "@/components/custom/GenerationHeader";
+import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -213,7 +213,7 @@ function DrawRouteComponent() {
 				) : (
 					<div className="flex-1 flex flex-col h-full">
 						<header className="px-4 py-2 bg-card border-b">
-							<DrawGenerationHeader
+							<GenerationHeader
 								mermaidCode={mermaidCode}
 								setIsModalOpen={setIsModalOpen}
 								startRecording={startRecording}

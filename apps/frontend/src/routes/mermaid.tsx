@@ -1,5 +1,5 @@
 import { MermaidDiffView } from "@/components/custom/DiffView";
-import { MermaidGenerationHeader } from "@/components/custom/GenerationHeader";
+import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -207,12 +207,13 @@ function MermaidRouteComponent() {
 					/>
 				) : (
 					<>
-						<MermaidGenerationHeader
+						<GenerationHeader
+							mermaidCode={mermaidCode}
 							setIsModalOpen={setIsModalOpen}
-							micStatus={micStatus}
-							isVoiceLoading={isVoiceLoading}
 							startRecording={startRecording}
 							stopRecording={stopRecording}
+							micStatus={micStatus}
+							isVoiceLoading={isVoiceLoading}
 						/>
 						<div className="flex-1 p-4">
 							{mermaidCode && <div ref={newRef} />}
