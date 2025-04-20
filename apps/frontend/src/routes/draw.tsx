@@ -9,6 +9,7 @@ import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
+import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
@@ -54,6 +55,10 @@ export const Route = createFileRoute("/draw")({
 function DrawRouteComponent() {
 	const { resolvedTheme } = useTheme();
 	const { history, addHistory } = usePersistedHistory("drawHistory");
+	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
+		history,
+		"drawHistorySelection",
+	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const {
 		status: micStatus,
@@ -98,9 +103,6 @@ function DrawRouteComponent() {
 	const [newVersionKey, setNewVersionKey] = useState(0);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-	const [selectedTimestamp, setSelectedTimestamp] = useState<
-		number | undefined
-	>();
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
@@ -171,22 +173,25 @@ function DrawRouteComponent() {
 		setIsModalOpen(false);
 	};
 
-	// Initialize scene from latest history using the same logic as onItemClick
+	// render scene when history or selection changes
 	useEffect(() => {
+		if (history.length === 0) return;
+		const ts = selectedTimestamp !== undefined
+			? selectedTimestamp
+			: history[history.length - 1].timestamp;
+		const item = history.find((i) => i.timestamp === ts) || history[history.length - 1];
 		const api = excalidrawAPIRef.current;
-		if (history.length > 0 && api) {
-			const last = history[history.length - 1];
-			safeParseMermaidToExcalidraw(last.diagram).then((res) => {
-				const excEl = convertToExcalidrawElements(res.elements);
-				api.resetScene();
-				api.updateScene({ elements: excEl });
-				api.scrollToContent(excEl, { fitToContent: true });
-				setMermaidCode(last.diagram);
-				setCurrentElements(excEl);
-				setSelectedTimestamp(last.timestamp);
-			});
-		}
-	}, [history]);
+		if (!api) return;
+
+		safeParseMermaidToExcalidraw(item.diagram).then((res) => {
+			const excEl = convertToExcalidrawElements(res.elements);
+			api.resetScene();
+			api.updateScene({ elements: excEl });
+			api.scrollToContent(excEl, { fitToContent: true });
+			setMermaidCode(item.diagram);
+			setCurrentElements(excEl);
+		});
+	}, [history, selectedTimestamp]);
 
 	return (
 		<div className="flex h-full">
