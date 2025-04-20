@@ -1,3 +1,4 @@
+import { ApprovalHeader } from "@/components/custom/ApprovalHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Mic, RefreshCw, Square, X } from "lucide-react";
+import { Mic, Square } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
@@ -210,32 +211,11 @@ function MermaidRouteComponent() {
 						<Card className="flex flex-col flex-1 m-1">
 							<CardHeader className="flex justify-between items-center">
 								<CardTitle>New</CardTitle>
-								<div className="flex space-x-2">
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={approve}
-										className="text-green-500"
-									>
-										<Check className="w-8 h-8" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={retry}
-										className="text-yellow-500"
-									>
-										<RefreshCw className="w-8 h-8" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={decline}
-										className="text-red-500"
-									>
-										<X className="w-8 h-8" />
-									</Button>
-								</div>
+								<ApprovalHeader
+									approve={approve}
+									retry={retry}
+									decline={decline}
+								/>
 							</CardHeader>
 							<CardContent>
 								<div ref={newRef} />

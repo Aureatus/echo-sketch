@@ -3,6 +3,7 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
+import { ApprovalHeader } from "@/components/custom/ApprovalHeader";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,15 +15,7 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import {
-	Check,
-	ChevronLeft,
-	ChevronRight,
-	Mic,
-	RefreshCw,
-	Square,
-	X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Mic, Square } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -315,35 +308,11 @@ function DrawRouteComponent() {
 								theme={resolvedTheme}
 								version={"new"}
 							>
-								<div className="flex space-x-2">
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={approve}
-										className="text-green-500"
-									>
-										<Check className="w-8 h-8" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => {
-											console.log("retry button clicked");
-											retry();
-										}}
-										className="text-yellow-500"
-									>
-										<RefreshCw className="w-8 h-8" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={decline}
-										className="text-red-500"
-									>
-										<X className="w-8 h-8" />
-									</Button>
-								</div>
+								<ApprovalHeader
+									approve={approve}
+									retry={retry}
+									decline={decline}
+								/>
 							</ExcalidrawWrapper>
 						</div>
 					</div>
