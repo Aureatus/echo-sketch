@@ -1,31 +1,22 @@
 import type { DiagramResponse } from "@/lib/queries";
-import { get, set } from "idb-keyval";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useIndexedDBState } from "@/hooks/useStorageState";
 
 export type HistoryItem = DiagramResponse & { timestamp: number };
 const STORAGE_KEY = "diagramHistory";
 
 export function usePersistedHistory(storageKey: string = STORAGE_KEY) {
-	const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useIndexedDBState<HistoryItem[]>(
+    storageKey,
+    [],
+  );
 
-	// Load persisted history on mount
-	useEffect(() => {
-		get<HistoryItem[]>(storageKey).then((data) => {
-			if (data) setHistory(data);
-		});
-	}, [storageKey]);
+  const addHistory = useCallback(
+    (item: HistoryItem) => {
+      setHistory((prev) => [...prev, item]);
+    },
+    [setHistory],
+  );
 
-	// Add a new item and persist
-	const addHistory = useCallback(
-		(item: HistoryItem) => {
-			setHistory((prev) => {
-				const next = [...prev, item];
-				set(storageKey, next);
-				return next;
-			});
-		},
-		[storageKey],
-	);
-
-	return { history, addHistory };
+  return { history, addHistory };
 }
