@@ -8,6 +8,13 @@ import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,7 +24,7 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, History } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -103,6 +110,7 @@ function DrawRouteComponent() {
 	const [newVersionKey, setNewVersionKey] = useState(0);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+	const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
@@ -176,10 +184,12 @@ function DrawRouteComponent() {
 	// render scene when history or selection changes
 	useEffect(() => {
 		if (history.length === 0) return;
-		const ts = selectedTimestamp !== undefined
-			? selectedTimestamp
-			: history[history.length - 1].timestamp;
-		const item = history.find((i) => i.timestamp === ts) || history[history.length - 1];
+		const ts =
+			selectedTimestamp !== undefined
+				? selectedTimestamp
+				: history[history.length - 1].timestamp;
+		const item =
+			history.find((i) => i.timestamp === ts) || history[history.length - 1];
 		const api = excalidrawAPIRef.current;
 		if (!api) return;
 
@@ -194,9 +204,31 @@ function DrawRouteComponent() {
 	}, [history, selectedTimestamp]);
 
 	return (
-		<div className="flex h-full">
+		<div className="flex flex-col md:flex-row h-full">
+			<Dialog open={isSidebarModalOpen} onOpenChange={setIsSidebarModalOpen}>
+				<DialogTrigger asChild>
+					<Button variant="outline" size="icon" className="md:hidden m-2">
+						<History className="h-5 w-5" />
+					</Button>
+				</DialogTrigger>
+				<DialogContent className="p-0 w-3/4 max-w-xs">
+					<DialogTitle className="sr-only">History</DialogTitle>
+					<DialogDescription className="sr-only">
+						Select an item from history
+					</DialogDescription>
+					<HistorySidebar
+						history={history}
+						isOpen={true}
+						selectedTimestamp={selectedTimestamp}
+						onItemClick={(item) => {
+							setSelectedTimestamp(item.timestamp);
+							setIsSidebarModalOpen(false);
+						}}
+					/>
+				</DialogContent>
+			</Dialog>
 			<aside
-				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
+				className={`${isSidebarOpen ? "w-64" : "w-16"} hidden md:flex flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
 			>
 				<div className="flex justify-end mb-2">
 					<Button
