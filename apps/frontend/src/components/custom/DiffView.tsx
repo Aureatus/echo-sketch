@@ -7,10 +7,12 @@ function DiffPanel({
 	title,
 	children,
 	headerExtra,
+	contentClassName,
 }: {
 	title: string;
 	children: React.ReactNode;
 	headerExtra?: React.ReactNode;
+	contentClassName?: string;
 }) {
 	return (
 		<Card className="flex flex-col flex-1 m-1">
@@ -22,7 +24,9 @@ function DiffPanel({
 				<CardTitle>{title}</CardTitle>
 				{headerExtra}
 			</CardHeader>
-			<CardContent className="flex-1">{children}</CardContent>
+			<CardContent className={`flex-1 ${contentClassName || ""}`}>
+				{children}
+			</CardContent>
 		</Card>
 	);
 }
@@ -127,6 +131,7 @@ export function MermaidDiffView({
 				headerExtra={
 					<ApprovalHeader approve={approve} retry={retry} decline={decline} />
 				}
+				contentClassName="bg-green-50"
 			>
 				<div ref={newRef} />
 			</DiffPanel>
