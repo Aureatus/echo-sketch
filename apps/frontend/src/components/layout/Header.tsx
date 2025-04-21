@@ -9,7 +9,7 @@ import { Route as MermaidRoute } from "@/routes/mermaid";
 export default function Header() {
 	// removed dynamic preload code
 
-	const { theme, setTheme } = useTheme();
+	const { theme, resolvedTheme, setTheme } = useTheme();
 
 	const toggleTheme = () => {
 		setTheme(theme === "light" || theme === "system" ? "dark" : "light");
@@ -19,6 +19,24 @@ export default function Header() {
 		<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
 			<div className="container flex h-full max-w-screen-2xl items-center">
 				<nav className="flex flex-row items-center gap-4">
+					<div className="flex items-center mr-4">
+						<Link to={DrawRoute.id}>
+							<img
+								src={
+									resolvedTheme === "dark"
+										? "/header-dark.png"
+										: "/header-light.png"
+								}
+								srcSet={
+									resolvedTheme === "dark"
+										? "/header-dark.png 1x, /header-dark@2x.png 2x"
+										: "/header-light.png 1x, /header-light@2x.png 2x"
+								}
+								alt="Echo Sketch Logo"
+								className="h-8"
+							/>
+						</Link>
+					</div>
 					<div>
 						<Link
 							to={DrawRoute.id}
