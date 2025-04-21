@@ -23,7 +23,7 @@ export function SidebarModal({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
-				<Button variant="outline" className="m-2 flex items-center space-x-1">
+				<Button variant="outline" className="flex items-center space-x-1">
 					<History className="h-5 w-5" />
 					<span>History</span>
 				</Button>
