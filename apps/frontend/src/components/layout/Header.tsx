@@ -19,14 +19,28 @@ export default function Header() {
 		<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
 			<div className="container flex h-full max-w-screen-2xl items-center">
 				<nav className="flex flex-row items-center gap-4">
-					<div className="font-bold">
-						<Link to={DrawRoute.id} className="[&.active]:font-bold">
+					<div>
+						<Link
+							to={DrawRoute.id}
+							className="text-muted-foreground"
+							activeProps={{
+								className:
+									"font-bold text-primary border-b-2 border-primary pb-1",
+							}}
+						>
 							Draw
 						</Link>
 					</div>
 
-					<div className="font-bold">
-						<Link to={MermaidRoute.id} className="[&.active]:font-bold">
+					<div>
+						<Link
+							to={MermaidRoute.id}
+							className="text-muted-foreground"
+							activeProps={{
+								className:
+									"font-bold text-primary border-b-2 border-primary pb-1",
+							}}
+						>
 							Mermaid
 						</Link>
 					</div>
