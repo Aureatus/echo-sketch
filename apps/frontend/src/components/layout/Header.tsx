@@ -32,7 +32,7 @@ export default function Header() {
 									: "/header-light.png 1x, /header-light@2x.png 2x"
 							}
 							alt="Echo Sketch Logo"
-							className="h-8"
+							className="h-8 md:h-10"
 						/>
 					</Link>
 				</div>
