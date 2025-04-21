@@ -7,7 +7,7 @@ import { DrawDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
 import { HistorySidebar } from "@/components/custom/HistorySidebar";
 import { InstructionModal } from "@/components/custom/InstructionModal";
-import { Button } from "@/components/ui/button";
+import { SidebarModal } from "@/components/layout/SidebarModal";
 import { usePersistedHistory } from "@/hooks/usePersistedHistory";
 import { usePersistedSelection } from "@/hooks/usePersistedSelection";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,7 +17,6 @@ import type {
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -60,6 +59,7 @@ function DrawRouteComponent() {
 		"drawHistorySelection",
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const {
 		status: micStatus,
 		startRecording,
@@ -101,7 +101,6 @@ function DrawRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
@@ -176,10 +175,12 @@ function DrawRouteComponent() {
 	// render scene when history or selection changes
 	useEffect(() => {
 		if (history.length === 0) return;
-		const ts = selectedTimestamp !== undefined
-			? selectedTimestamp
-			: history[history.length - 1].timestamp;
-		const item = history.find((i) => i.timestamp === ts) || history[history.length - 1];
+		const ts =
+			selectedTimestamp !== undefined
+				? selectedTimestamp
+				: history[history.length - 1].timestamp;
+		const item =
+			history.find((i) => i.timestamp === ts) || history[history.length - 1];
 		const api = excalidrawAPIRef.current;
 		if (!api) return;
 
@@ -194,39 +195,29 @@ function DrawRouteComponent() {
 	}, [history, selectedTimestamp]);
 
 	return (
-		<div className="flex h-full">
-			<aside
-				className={`${isSidebarOpen ? "w-64" : "w-16"} flex-shrink-0 flex flex-col h-full p-2 bg-card text-card-foreground border-r border-border`}
-			>
-				<div className="flex justify-end mb-2">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => setIsSidebarOpen((prev) => !prev)}
-					>
-						{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
-					</Button>
-				</div>
-				{isSidebarOpen && (
-					<HistorySidebar
-						history={history}
-						isOpen={isSidebarOpen}
-						selectedTimestamp={selectedTimestamp}
-						onItemClick={async (item) => {
-							const api = excalidrawAPIRef.current;
-							if (!api) return;
-							const result = await safeParseMermaidToExcalidraw(item.diagram);
-							const excEl = convertToExcalidrawElements(result.elements);
-							api.resetScene();
-							api.updateScene({ elements: excEl });
-							api.scrollToContent(excEl, { fitToContent: true });
-							setMermaidCode(item.diagram);
-							setSelectedTimestamp(item.timestamp);
-						}}
-					/>
-				)}
-			</aside>
+		<div className="flex flex-col md:flex-row h-full">
 			<main className="flex-1 flex flex-col h-full">
+				<header className="px-4 py-2 bg-card border-b flex justify-between items-center">
+					<GenerationHeader
+						mermaidCode={mermaidCode}
+						setIsModalOpen={setIsModalOpen}
+						startRecording={startRecording}
+						stopRecording={stopRecording}
+						micStatus={micStatus}
+						isVoiceLoading={isVoiceLoading}
+					/>
+					<SidebarModal open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+						<HistorySidebar
+							history={history}
+							isOpen={true}
+							selectedTimestamp={selectedTimestamp ?? 0}
+							onItemClick={(item) => {
+								setSelectedTimestamp(item.timestamp);
+								setIsHistoryOpen(false);
+							}}
+						/>
+					</SidebarModal>
+				</header>
 				{newElements ? (
 					<DrawDiffView
 						oldElements={oldElements || []}
@@ -239,16 +230,6 @@ function DrawRouteComponent() {
 					/>
 				) : (
 					<div className="flex-1 flex flex-col h-full">
-						<header className="px-4 py-2 bg-card border-b">
-							<GenerationHeader
-								mermaidCode={mermaidCode}
-								setIsModalOpen={setIsModalOpen}
-								startRecording={startRecording}
-								stopRecording={stopRecording}
-								micStatus={micStatus}
-								isVoiceLoading={isVoiceLoading}
-							/>
-						</header>
 						<div className="flex-1">
 							<Excalidraw
 								initialData={{ elements: currentElements, appState: {} }}
