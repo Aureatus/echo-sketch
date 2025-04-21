@@ -19,7 +19,7 @@ export default function Header() {
 		<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14 px-4 flex items-center justify-between">
 			<nav className="flex flex-row items-center gap-4">
 				<div className="flex items-center mr-4">
-					<Link to={DrawRoute.id}>
+					<Link to="/">
 						<img
 							src={
 								resolvedTheme === "dark"
