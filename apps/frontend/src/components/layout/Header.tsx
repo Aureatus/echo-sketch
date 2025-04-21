@@ -3,7 +3,7 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
-import { Route as DrawRoute } from "@/routes/draw";
+import { Route as ExcalidrawRoute } from "@/routes/excalidraw";
 import { Route as MermaidRoute } from "@/routes/mermaid";
 
 export default function Header() {
@@ -38,7 +38,7 @@ export default function Header() {
 				</div>
 				<div>
 					<Link
-						to={DrawRoute.id}
+						to={ExcalidrawRoute.id}
 						className="text-muted-foreground"
 						activeProps={{
 							className:

@@ -61,7 +61,7 @@ async function drawLoader() {
 	return { initialElements: excEl, initialDiagram: last.diagram };
 }
 
-export const Route = createFileRoute("/draw")({
+export const Route = createFileRoute("/excalidraw")({
 	loader: drawLoader,
 	component: DrawRouteComponent,
 });
@@ -73,7 +73,7 @@ type ElementsType = React.ComponentProps<
 
 function DrawRouteComponent() {
 	const { initialElements, initialDiagram } = useLoaderData({
-		from: "/draw",
+		from: "/excalidraw",
 		strict: true,
 	});
 	const { resolvedTheme } = useTheme();

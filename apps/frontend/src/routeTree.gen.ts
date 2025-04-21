@@ -12,7 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as MermaidImport } from './routes/mermaid'
-import { Route as DrawImport } from './routes/draw'
+import { Route as ExcalidrawImport } from './routes/excalidraw'
 import { Route as IndexImport } from './routes/index'
 
 // Create/Update Routes
@@ -23,9 +23,9 @@ const MermaidRoute = MermaidImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const DrawRoute = DrawImport.update({
-  id: '/draw',
-  path: '/draw',
+const ExcalidrawRoute = ExcalidrawImport.update({
+  id: '/excalidraw',
+  path: '/excalidraw',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -46,11 +46,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/draw': {
-      id: '/draw'
-      path: '/draw'
-      fullPath: '/draw'
-      preLoaderRoute: typeof DrawImport
+    '/excalidraw': {
+      id: '/excalidraw'
+      path: '/excalidraw'
+      fullPath: '/excalidraw'
+      preLoaderRoute: typeof ExcalidrawImport
       parentRoute: typeof rootRoute
     }
     '/mermaid': {
@@ -67,41 +67,41 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/draw': typeof DrawRoute
+  '/excalidraw': typeof ExcalidrawRoute
   '/mermaid': typeof MermaidRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/draw': typeof DrawRoute
+  '/excalidraw': typeof ExcalidrawRoute
   '/mermaid': typeof MermaidRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/draw': typeof DrawRoute
+  '/excalidraw': typeof ExcalidrawRoute
   '/mermaid': typeof MermaidRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/draw' | '/mermaid'
+  fullPaths: '/' | '/excalidraw' | '/mermaid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/draw' | '/mermaid'
-  id: '__root__' | '/' | '/draw' | '/mermaid'
+  to: '/' | '/excalidraw' | '/mermaid'
+  id: '__root__' | '/' | '/excalidraw' | '/mermaid'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DrawRoute: typeof DrawRoute
+  ExcalidrawRoute: typeof ExcalidrawRoute
   MermaidRoute: typeof MermaidRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DrawRoute: DrawRoute,
+  ExcalidrawRoute: ExcalidrawRoute,
   MermaidRoute: MermaidRoute,
 }
 
@@ -116,15 +116,15 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/draw",
+        "/excalidraw",
         "/mermaid"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/draw": {
-      "filePath": "draw.tsx"
+    "/excalidraw": {
+      "filePath": "excalidraw.tsx"
     },
     "/mermaid": {
       "filePath": "mermaid.tsx"
