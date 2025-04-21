@@ -1,5 +1,6 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type React from "react";
+import { cn } from "../../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ApprovalHeader } from "./ApprovalHeader";
 
@@ -16,16 +17,22 @@ function DiffPanel({
 	contentClassName?: string;
 }) {
 	return (
-		<Card className="flex flex-col flex-1 m-1">
+		<Card className="flex flex-col flex-1 m-1 dark:border-gray-700 p-2 gap-1">
 			<CardHeader
-				className={
-					headerExtra ? "flex justify-between items-center" : undefined
-				}
+				className={cn(
+					"px-0 py-0",
+					headerExtra ? "flex justify-between items-center" : undefined,
+				)}
 			>
 				<CardTitle>{title}</CardTitle>
 				{headerExtra}
 			</CardHeader>
-			<CardContent className={`flex-1 ${contentClassName || ""}`}>
+			<CardContent
+				className={cn(
+					"flex-1 px-0 border border-border dark:border-gray-600 rounded-md p-1",
+					contentClassName,
+				)}
+			>
 				{children}
 			</CardContent>
 		</Card>
@@ -70,7 +77,7 @@ export function DrawDiffView({
 }) {
 	return (
 		<div className="flex-1 flex flex-col h-full">
-			<div className="flex-1 flex p-2">
+			<div className="flex-1 flex px-2 pb-2 pt-1">
 				<DiffPanel title="Current">
 					<Excalidraw
 						{...commonExcalidrawProps}
@@ -116,7 +123,7 @@ export function MermaidDiffView({
 	decline: () => void;
 }) {
 	return (
-		<div className="flex-1 flex p-2">
+		<div className="flex-1 flex px-2 pb-2 pt-1">
 			<DiffPanel title="Current">
 				<div ref={currentRef} />
 			</DiffPanel>
