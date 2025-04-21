@@ -1,4 +1,5 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
+import type React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ApprovalHeader } from "./ApprovalHeader";
 
@@ -31,6 +32,25 @@ function DiffPanel({
 	);
 }
 
+// Common props for Excalidraw instances in the diff view
+const commonExcalidrawProps: Partial<React.ComponentProps<typeof Excalidraw>> =
+	{
+		viewModeEnabled: true,
+		zenModeEnabled: true,
+		UIOptions: {
+			canvasActions: {
+				changeViewBackgroundColor: false,
+				loadScene: false,
+				clearCanvas: false,
+				export: false,
+				saveAsImage: false,
+				saveToActiveFile: false,
+				toggleTheme: false,
+			},
+			tools: { image: false },
+		},
+	};
+
 export function DrawDiffView({
 	oldElements,
 	resolvedTheme,
@@ -53,22 +73,9 @@ export function DrawDiffView({
 			<div className="flex-1 flex p-2">
 				<DiffPanel title="Current">
 					<Excalidraw
+						{...commonExcalidrawProps}
 						initialData={{ elements: oldElements || [], appState: {} }}
 						theme={resolvedTheme}
-						viewModeEnabled
-						zenModeEnabled
-						UIOptions={{
-							canvasActions: {
-								changeViewBackgroundColor: false,
-								loadScene: false,
-								clearCanvas: false,
-								export: false,
-								saveAsImage: false,
-								saveToActiveFile: false,
-								toggleTheme: false,
-							},
-							tools: { image: false },
-						}}
 					/>
 				</DiffPanel>
 				<DiffPanel
@@ -79,6 +86,7 @@ export function DrawDiffView({
 					key={newVersionKey}
 				>
 					<Excalidraw
+						{...commonExcalidrawProps}
 						initialData={{
 							elements: newElements,
 							appState: {
@@ -87,20 +95,6 @@ export function DrawDiffView({
 							},
 						}}
 						theme="light"
-						viewModeEnabled
-						zenModeEnabled
-						UIOptions={{
-							canvasActions: {
-								changeViewBackgroundColor: false,
-								loadScene: false,
-								clearCanvas: false,
-								export: false,
-								saveAsImage: false,
-								saveToActiveFile: false,
-								toggleTheme: false,
-							},
-							tools: { image: false },
-						}}
 					/>
 				</DiffPanel>
 			</div>
