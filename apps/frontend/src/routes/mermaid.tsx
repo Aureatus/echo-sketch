@@ -11,7 +11,7 @@ import type {
 	DiagramResponse,
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import mermaid from "mermaid";
 import { useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
@@ -19,11 +19,22 @@ import { toast } from "sonner";
 
 mermaid.initialize({ startOnLoad: false });
 
+// loader: fetch initial diagram from localStorage
+async function mermaidLoader() {
+	const stored = localStorage.getItem("mermaidHistory");
+	const history = stored ? JSON.parse(stored) : [];
+	const initialDiagram =
+		history.length > 0 ? history[history.length - 1].diagram : "";
+	return { initialDiagram };
+}
+
 export const Route = createFileRoute("/mermaid")({
+	loader: mermaidLoader,
 	component: MermaidRouteComponent,
 });
 
 function MermaidRouteComponent() {
+	const { initialDiagram } = useLoaderData({ from: "/mermaid", strict: true });
 	const { resolvedTheme } = useTheme();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -59,7 +70,7 @@ function MermaidRouteComponent() {
 		},
 	});
 
-	const [mermaidCode, setOldCode] = useState("");
+	const [mermaidCode, setOldCode] = useState<string>(initialDiagram);
 	const [newCode, setNewCode] = useState<string | null>(null);
 	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
 		null,

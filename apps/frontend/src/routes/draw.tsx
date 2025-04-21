@@ -1,7 +1,7 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
 import { DrawDiffView } from "@/components/custom/DiffView";
 import { GenerationHeader } from "@/components/custom/GenerationHeader";
@@ -47,11 +47,27 @@ async function safeParseMermaidToExcalidraw(diagram: string) {
 	}
 }
 
+// loader: fetch last diagram and parse to excalidraw elements
+async function drawLoader() {
+	const stored = localStorage.getItem("drawHistory");
+	const history = stored ? JSON.parse(stored) : [];
+	const last = history.length > 0 ? history[history.length - 1] : null;
+	if (!last) return { initialElements: [], initialDiagram: "" };
+	const parsed = await safeParseMermaidToExcalidraw(last.diagram);
+	const excEl = convertToExcalidrawElements(parsed.elements);
+	return { initialElements: excEl, initialDiagram: last.diagram };
+}
+
 export const Route = createFileRoute("/draw")({
+	loader: drawLoader,
 	component: DrawRouteComponent,
 });
 
 function DrawRouteComponent() {
+	const { initialElements, initialDiagram } = useLoaderData({
+		from: "/draw",
+		strict: true,
+	});
 	const { resolvedTheme } = useTheme();
 	const { history, addHistory } = usePersistedHistory("drawHistory");
 	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
@@ -91,8 +107,9 @@ function DrawRouteComponent() {
 			}
 		},
 	});
-	const [mermaidCode, setMermaidCode] = useState<string>("");
-	const [currentElements, setCurrentElements] = useState<unknown[]>([]);
+	const [mermaidCode, setMermaidCode] = useState<string>(initialDiagram);
+	const [currentElements, setCurrentElements] =
+		useState<unknown[]>(initialElements);
 	const [oldElements, setOldElements] = useState<unknown[] | null>(null);
 	const [newElements, setNewElements] = useState<unknown[] | null>(null);
 	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
