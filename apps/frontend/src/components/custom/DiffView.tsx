@@ -60,10 +60,10 @@ export function DrawDiffView({
 	retry,
 	decline,
 }: {
-	oldElements: unknown[];
+	oldElements: readonly unknown[];
 	resolvedTheme: "light" | "dark";
 	newVersionKey: number;
-	newElements: unknown[];
+	newElements: readonly unknown[];
 	approve: () => void;
 	retry: () => void;
 	decline: () => void;

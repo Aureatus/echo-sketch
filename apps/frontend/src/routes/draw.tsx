@@ -1,5 +1,7 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
-import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import {
+	Excalidraw,
+	convertToExcalidrawElements,
+} from "@excalidraw/excalidraw";
 import { parseMermaidToExcalidraw } from "@excalidraw/mermaid-to-excalidraw";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import "@excalidraw/excalidraw/index.css";
@@ -18,7 +20,8 @@ import type {
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import mermaid from "mermaid";
-import { useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
 
@@ -63,6 +66,11 @@ export const Route = createFileRoute("/draw")({
 	component: DrawRouteComponent,
 });
 
+// Infer the elements type from Excalidraw component props
+type ElementsType = React.ComponentProps<
+	typeof Excalidraw
+>["initialData"]["elements"];
+
 function DrawRouteComponent() {
 	const { initialElements, initialDiagram } = useLoaderData({
 		from: "/draw",
@@ -76,42 +84,11 @@ function DrawRouteComponent() {
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-	const {
-		status: micStatus,
-		startRecording,
-		stopRecording,
-	} = useReactMediaRecorder({
-		audio: {
-			echoCancellation: true,
-			noiseSuppression: true,
-			autoGainControl: true,
-		},
-		onStop: async (_blobUrl, blob) => {
-			const payload: VoiceToDiagramMutationPayload = {
-				audioBlob: blob,
-				existingDiagramCode: mermaidCode,
-			};
-			setLastVoicePayload(payload);
-			try {
-				setIsVoiceLoading(true);
-				const { response, elements } = await generateDiagramVoice(payload);
-				setOldElements(currentElements);
-				setNewElements(elements);
-				setLastResponse(response);
-				setIsModalOpen(false);
-			} catch (error: unknown) {
-				const msg = error instanceof Error ? error.message : String(error);
-				toast.error("Voice-to-Diagram Failed", { description: msg });
-			} finally {
-				setIsVoiceLoading(false);
-			}
-		},
-	});
 	const [mermaidCode, setMermaidCode] = useState<string>(initialDiagram);
 	const [currentElements, setCurrentElements] =
-		useState<unknown[]>(initialElements);
-	const [oldElements, setOldElements] = useState<unknown[] | null>(null);
-	const [newElements, setNewElements] = useState<unknown[] | null>(null);
+		useState<ElementsType>(initialElements);
+	const [oldElements, setOldElements] = useState<ElementsType | null>(null);
+	const [newElements, setNewElements] = useState<ElementsType | null>(null);
 	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
 		null,
 	);
@@ -122,8 +99,22 @@ function DrawRouteComponent() {
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
-	// approval handlers
-	const approve = () => {
+	// State Update Handlers
+	const showDiff = useCallback(
+		(response: DiagramResponse, elements: ElementsType) => {
+			setOldElements(currentElements);
+			setNewElements(elements);
+			setLastResponse(response);
+			setNewVersionKey((k) => k + 1);
+			setIsModalOpen(false);
+			if (!("audioBlob" in response)) {
+				setLastVoicePayload(null);
+			}
+		},
+		[currentElements],
+	);
+
+	const approve = useCallback(() => {
 		if (newElements && lastResponse) {
 			const timestamp = Date.now();
 			setCurrentElements(newElements);
@@ -134,81 +125,158 @@ function DrawRouteComponent() {
 		setNewElements(null);
 		setOldElements(null);
 		setLastResponse(null);
-	};
-	const decline = () => {
+		setLastVoicePayload(null);
+	}, [
+		newElements,
+		lastResponse,
+		addHistory,
+		setSelectedTimestamp,
+		mermaidCode,
+	]);
+
+	const decline = useCallback(() => {
 		setNewElements(null);
 		setOldElements(null);
 		setLastResponse(null);
-	};
-	// retry handler: re-invoke the diagram endpoint with loading toast
-	const retry = async () => {
-		console.log("retry clicked", { lastVoicePayload, lastResponse });
+		setLastVoicePayload(null);
+	}, []);
+
+	const retry = useCallback(async () => {
+		const codeForRetryContext = mermaidCode;
+
+		console.log("draw retry", {
+			lastVoicePayload,
+			lastResponse,
+			codeForRetryContext,
+		});
+
 		if (lastVoicePayload) {
-			const toastId = toast.loading("Regenerating diagram...");
+			const toastId = toast.loading("Regenerating diagram (voice)...");
 			try {
 				const { response, elements } = await generateDiagramVoice({
-					audioBlob: lastVoicePayload.audioBlob,
+					...lastVoicePayload,
+					existingDiagramCode: codeForRetryContext,
 				});
 				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				setOldElements(currentElements);
 				setNewElements(elements);
 				setNewVersionKey((k) => k + 1);
 				setLastResponse(response);
-			} catch {
-				toast.error("Retry failed", { id: toastId });
+			} catch (error) {
+				console.error("Voice retry failed:", error);
+				toast.error("Voice retry failed", { id: toastId });
 			}
 			return;
 		}
 		if (lastResponse) {
-			const toastId = toast.loading("Regenerating diagram...");
+			const toastId = toast.loading("Regenerating diagram (text)...");
 			try {
 				const { response, elements } = await generateDiagramText({
-					instruction: lastResponse.instruction,
+					instruction: `${lastResponse.instruction}\n\nPlease regenerate with slight variations`,
+					existingDiagramCode: codeForRetryContext,
 				});
 				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				setOldElements(currentElements);
 				setNewElements(elements);
 				setNewVersionKey((k) => k + 1);
 				setLastResponse(response);
-			} catch {
+			} catch (error) {
+				console.error("Text retry failed:", error);
 				toast.error("Retry failed", { id: toastId });
 			}
 		}
-	};
+	}, [mermaidCode, lastVoicePayload, lastResponse]);
 
-	/**
-	 * Receives RPC results from InstructionModal: update scene directly without extra fetch
-	 */
-	const handleInstructionGenerated = ({
-		response,
-		elements,
-	}: { response: DiagramResponse; elements: unknown[] }) => {
-		setOldElements(currentElements);
-		setNewElements(elements);
-		setLastResponse(response);
-		setIsModalOpen(false);
-	};
+	const handleInstructionGenerated = useCallback(
+		({
+			response,
+			elements,
+		}: { response: DiagramResponse; elements: ElementsType }) => {
+			showDiff(response, elements);
+			setLastVoicePayload(null);
+		},
+		[showDiff],
+	);
 
-	// render scene when history or selection changes
+	// Voice Stop Handler
+	const handleVoiceStop = useCallback(
+		async (_blobUrl: string, blob: Blob) => {
+			const payload: VoiceToDiagramMutationPayload = {
+				audioBlob: blob,
+				existingDiagramCode: mermaidCode,
+			};
+			setLastVoicePayload(payload);
+			const toastId = toast.loading("Generating diagram from voice...");
+			setIsVoiceLoading(true);
+			try {
+				const { response, elements } = await generateDiagramVoice(payload);
+				toast.success("Diagram generated", { id: toastId, duration: 1000 });
+				showDiff(response, elements);
+			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : String(error);
+				console.error("Voice-to-Diagram Failed:", error);
+				toast.error("Voice-to-Diagram Failed", {
+					id: toastId,
+					description: msg,
+				});
+				setLastVoicePayload(null);
+			} finally {
+				setIsVoiceLoading(false);
+			}
+		},
+		[mermaidCode, showDiff],
+	);
+
+	// Now call the hook that uses handleVoiceStop
+	const {
+		status: micStatus,
+		startRecording,
+		stopRecording,
+	} = useReactMediaRecorder({
+		audio: {
+			echoCancellation: true,
+			noiseSuppression: true,
+			autoGainControl: true,
+		},
+		onStop: handleVoiceStop,
+	});
+
+	// Effects
 	useEffect(() => {
-		if (history.length === 0) return;
+		const api = excalidrawAPIRef.current;
+
+		if (history.length === 0) {
+			setCurrentElements([]);
+			setMermaidCode("");
+			api?.resetScene();
+			return;
+		}
 		const ts =
 			selectedTimestamp !== undefined
 				? selectedTimestamp
 				: history[history.length - 1].timestamp;
 		const item =
 			history.find((i) => i.timestamp === ts) || history[history.length - 1];
-		const api = excalidrawAPIRef.current;
-		if (!api) return;
 
-		safeParseMermaidToExcalidraw(item.diagram).then((res) => {
-			const excEl = convertToExcalidrawElements(res.elements);
-			api.resetScene();
-			api.updateScene({ elements: excEl });
-			api.scrollToContent(excEl, { fitToContent: true });
-			setMermaidCode(item.diagram);
-			setCurrentElements(excEl);
-		});
+		if (!api || !item) return;
+
+		setNewElements(null);
+		setOldElements(null);
+		setLastResponse(null);
+		setLastVoicePayload(null);
+
+		safeParseMermaidToExcalidraw(item.diagram)
+			.then((res) => {
+				const excEl = convertToExcalidrawElements(res.elements) as ElementsType;
+				api.updateScene({ elements: excEl });
+				api.scrollToContent(excEl.length > 0 ? excEl : undefined, {
+					fitToContent: true,
+				});
+				setCurrentElements(excEl);
+				setMermaidCode(item.diagram);
+			})
+			.catch((error) => {
+				console.error("Failed to parse history item for Excalidraw:", error);
+				toast.error("Failed to load diagram from history.");
+			});
 	}, [history, selectedTimestamp]);
 
 	return (
