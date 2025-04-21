@@ -7,7 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": ["apps/frontend/src/routeTree.gen.ts"],
+		"ignore": [
+			"apps/frontend/src/routeTree.gen.ts",
+			".sst/",
+			"sst-env.d.ts",
+			"src/components/ui"
+		],
 		"include": ["src/*", ".vscode/*", "index.html", "vite.config.js"]
 	},
 	"formatter": {
