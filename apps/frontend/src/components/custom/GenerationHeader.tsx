@@ -17,7 +17,7 @@ export function GenerationHeader({
 	isVoiceLoading: boolean;
 }) {
 	const buttonText = mermaidCode ? "Update Diagram" : "Generate Diagram";
-	const micDisabled = micStatus === "recording" || isVoiceLoading;
+	const micDisabled = isVoiceLoading;
 	const micLabel = isVoiceLoading
 		? "Generating diagram..."
 		: micStatus === "recording"
