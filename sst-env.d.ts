@@ -14,6 +14,20 @@ declare module "sst" {
       "type": "sst.aws.Function"
       "url": string
     }
+    "MyPostgres": {
+      "clusterArn": string
+      "database": string
+      "host": string
+      "password": string
+      "port": number
+      "reader": string
+      "secretArn": string
+      "type": "sst.aws.Aurora"
+      "username": string
+    }
+    "MyVpc": {
+      "type": "sst.aws.Vpc"
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string
