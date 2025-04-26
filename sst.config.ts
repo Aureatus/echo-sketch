@@ -1,6 +1,16 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
-async function runLocalPostgres(cfg: {
+async function checkDockerDaemon() {
+  const { execSync } = await import("child_process");
+  try {
+    execSync("docker ps", { stdio: 'ignore' });
+  } catch (error) {
+    console.error(`\n❌ Docker daemon check failed. Please ensure Docker is running.\n   (Error: ${error.message})`);
+    process.exit(1);
+  }
+}
+
+async function runDockerPostgres(cfg: {
   database: string;
   username: string;
   password: string;
@@ -8,45 +18,82 @@ async function runLocalPostgres(cfg: {
   host?: string;
 }) {
   const { spawn } = await import("child_process");
-  // Import the module
+  const { execSync } = await import("child_process");
   const waitOnModule = await import("wait-on");
-  // Access the function via the .default property, overriding types
   const waitOn = (waitOnModule as any).default;
 
   const container = "sst-dev-postgres";
-  const volume = `${process.cwd()}/.sst/storage/postgres:/var/lib/postgresql/data`;
 
+  let cleanedPrevious = false;
+  try {
+    const stopOutput = execSync(`docker stop ${container}`, { stdio: 'pipe' }).toString();
+    if (stopOutput.trim() === container) cleanedPrevious = true;
+  } catch (error) {}
+  try {
+    const rmOutput = execSync(`docker rm ${container}`, { stdio: 'pipe' }).toString();
+    if (rmOutput.trim() === container) cleanedPrevious = true;
+  } catch (error) {}
+  
+  if (cleanedPrevious) {
+    console.log(`ℹ️ Removed previous container named '${container}'.`);
+  }
+
+  const volume = `${process.cwd()}/.sst/storage/postgres:/var/lib/postgresql/data`;
   const args = [
-    "run",
-    "--rm",
-    "--name",
-    container,  
-    "-d",
-    "-p",
-    `${cfg.port}:5432`,
-    "-v",
-    volume,
-    `-e POSTGRES_USER=${cfg.username}`,
-    `-e POSTGRES_PASSWORD=${cfg.password}`,
-    `-e POSTGRES_DB=${cfg.database}`,
+    "run", "--rm", "--name", container, "-d", "-p", `${cfg.port}:5432`,
+    "-v", volume, 
+    "-e", `POSTGRES_USER=${cfg.username}`,
+    "-e", `POSTGRES_PASSWORD=${cfg.password}`,
+    "-e", `POSTGRES_DB=${cfg.database}`,
     "postgres:16.4",
   ];
 
-  spawn("docker", args, { stdio: "inherit" });
+  const dockerProcess = spawn("docker", args, { stdio: "inherit" });
 
-  // 2) wait until Postgres accepts connections
-  await waitOn({
-    resources: [`tcp:${cfg.host || "localhost"}:${cfg.port}`],
-    timeout: 30_000,
+  dockerProcess.on('error', (err) => {
+    console.error("\n❌ Failed to spawn Docker process for the container.");
+    console.error("   Error details:", err.message);
+    process.exit(1);
   });
 
-  // 3) register cleanup for both SIGINT and normal exit
+  try {
+    await waitOn({
+      resources: [`tcp:${cfg.host || "localhost"}:${cfg.port}`],
+      timeout: 30_000,
+      delay: 500,
+      log: false, 
+    });
+    console.log("✅ Postgres container is ready.");
+  } catch (err) {
+    console.error(`\n❌ Postgres container failed to start or become ready on port ${cfg.port} within 30s.`);
+    console.error(`   Check container logs (if it exists): docker logs ${container}`);
+    process.exit(1);
+  }
+
+  let cleanedUp = false;
   const cleanup = () => {
-    spawn("docker", ["stop", container], { stdio: "ignore" });
+    if (cleanedUp) return;
+    cleanedUp = true;
+    try {
+      execSync(`docker stop ${container}`, { stdio: 'ignore' });
+    } catch (error) {
+    }
   };
   process.on("SIGINT", cleanup);
-  process.on("exit",  cleanup);
+  process.on("SIGTERM", cleanup);
 }
+
+async function runLocalPostgres(cfg: {
+  database: string;
+  username: string;
+  password: string;
+  port: number;
+  host?: string;
+}) {
+  await checkDockerDaemon();
+  await runDockerPostgres(cfg);
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 
 export default $config({
