@@ -111,7 +111,6 @@ export default $config({
     };
   },
   async run() {
-    const isDev = process.env.SST_STAGE !== "production";
     const localDbConfig = {
       username: "postgres",
       password: "password",
@@ -120,7 +119,7 @@ export default $config({
       port: 5433,
     };
 
-    if (isDev) {
+    if ($dev) {
       await runLocalPostgres(localDbConfig);
 
       try {
