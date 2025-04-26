@@ -122,6 +122,15 @@ export default $config({
 
     if (isDev) {
       await runLocalPostgres(localDbConfig);
+
+      try {
+        const { execSync } = await import("child_process");
+        execSync('pnpm run --prefix apps/backend db:migrate', { stdio: 'inherit' });
+        console.log("Migration script completed successfully."); 
+      } catch (error) {
+        console.error("Migration script failed. See output above.");
+        process.exit(1);
+      }
     }
 
     const geminiKey = new sst.Secret("GeminiAPIKey");
@@ -133,8 +142,6 @@ export default $config({
       vpc,
       dev: localDbConfig 
     });
-
-    
 
     const hono = new sst.aws.Function("Hono", {
       link: [geminiKey, database],
