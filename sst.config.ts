@@ -161,6 +161,13 @@ export default $config({
       domain: "echo-sketch.com"
     });
 
+    new sst.x.DevCommand("DbStudio", {
+      link: [database],
+      dev: {
+        command: "pnpm --filter backend run db:studio",
+      },
+    });
+
     return {
       web: web.url,
       hono: hono.url
