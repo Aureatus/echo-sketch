@@ -5,6 +5,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "DatabaseMigrator": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
     "GeminiAPIKey": {
       "type": "sst.sst.Secret"
       "value": string

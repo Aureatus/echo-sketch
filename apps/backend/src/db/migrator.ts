@@ -1,21 +1,20 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import db from "./index.js"; // Adjusted path: now relative to db directory
 
-async function runMigrations() {
-	console.log("[Migrator Script] Starting database migration...");
-
-	try {
-		// Use the shared db instance for migrations
-		// Migrations folder path is relative to CWD where script is run (apps/backend), so keep it ./drizzle
-		await migrate(db, { migrationsFolder: "./drizzle" });
-		console.log("[Migrator Script] Migrations applied successfully.");
-		// Exit successfully
-		process.exit(0);
-	} catch (error) {
-		console.error("[Migrator Script] Migration failed:", error);
-		// Exit with error code
-		process.exit(1);
-	}
+export async function handler() {
+	console.log("[Migrator Handler] Starting database migration...");
+	await migrate(db, { migrationsFolder: "./drizzle" });
+	console.log("[Migrator Handler] Migrations applied successfully.");
 }
 
-runMigrations();
+// Run the handler if the script is executed directly
+if (
+	import.meta.url.startsWith("file:") &&
+	process.argv[1] === new URL(import.meta.url).pathname
+) {
+	console.log("[Migrator Script] Running migrations directly...");
+	handler().catch((err) => {
+		console.error("[Migrator Script] Migration failed:", err);
+		process.exit(1);
+	});
+}

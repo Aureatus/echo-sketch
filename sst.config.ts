@@ -125,9 +125,7 @@ export default $config({
       try {
         const { execSync } = await import("child_process");
         execSync('pnpm run --prefix apps/backend db:migrate', { stdio: 'inherit' });
-        console.log("Migration script completed successfully."); 
       } catch (error) {
-        console.error("Migration script failed. See output above.");
         process.exit(1);
       }
     }
@@ -146,7 +144,27 @@ export default $config({
       link: [geminiKey, database],
       url: true,
       handler: "apps/backend/src/index.handler",
+      vpc, 
     });
+
+    const migrator = new sst.aws.Function("DatabaseMigrator", {
+      handler: "apps/backend/src/db/migrator.handler",
+      link: [database],
+      vpc,
+      copyFiles: [
+        {
+          from: "apps/backend/drizzle",
+          to: "./drizzle",
+        }
+      ],
+    });
+
+    if (!$dev) {
+      new aws.lambda.Invocation(`DatabaseMigratorInvocation`, {
+        functionName: migrator.name,
+        input: JSON.stringify({ timestamp: Date.now() }), 
+      });
+    }
 
     const web = new sst.aws.StaticSite("Web", {
       path: "apps/frontend",
