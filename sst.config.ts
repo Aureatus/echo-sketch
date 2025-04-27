@@ -1,5 +1,13 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+const localDbConfig = {
+  username: "postgres",
+  password: "password",
+  database: "local",
+  host: "localhost",
+  port: 5433,
+};
+
 async function checkDockerDaemon() {
   const { execSync } = await import("child_process");
   try {
@@ -94,6 +102,28 @@ async function runLocalPostgres(cfg: {
   await runDockerPostgres(cfg);
 }
 
+async function runMigrations(migrator: sst.aws.Function) {
+  if (!$dev) {
+    // Production environment logic
+    new aws.lambda.Invocation(`DatabaseMigratorInvocation`, {
+      functionName: migrator.name,
+      input: JSON.stringify({ timestamp: Date.now() }), 
+    });
+  } else {
+    // Dev environment logic
+    await runLocalPostgres(localDbConfig);
+    try {
+      const { execSync } = await import("child_process");
+      execSync('pnpm run --prefix apps/backend db:migrate', { stdio: 'inherit' });
+      console.log("Local migration script completed successfully.");
+    } catch (error) {
+      console.error("Local migration script failed. See output above.");
+      process.exit(1);
+    }
+  }
+}
+
+
 // ────────────────────────────────────────────────────────────────────────────
 
 export default $config({
@@ -111,24 +141,6 @@ export default $config({
     };
   },
   async run() {
-    const localDbConfig = {
-      username: "postgres",
-      password: "password",
-      database: "local",
-      host: "localhost",
-      port: 5433,
-    };
-
-    if ($dev) {
-      await runLocalPostgres(localDbConfig);
-
-      try {
-        const { execSync } = await import("child_process");
-        execSync('pnpm run --prefix apps/backend db:migrate', { stdio: 'inherit' });
-      } catch (error) {
-        process.exit(1);
-      }
-    }
 
     const geminiKey = new sst.Secret("GeminiAPIKey");
 
@@ -159,13 +171,6 @@ export default $config({
       ],
     });
 
-    if (!$dev) {
-      new aws.lambda.Invocation(`DatabaseMigratorInvocation`, {
-        functionName: migrator.name,
-        input: JSON.stringify({ timestamp: Date.now() }), 
-      });
-    }
-
     const web = new sst.aws.StaticSite("Web", {
       path: "apps/frontend",
       environment: {
@@ -177,6 +182,8 @@ export default $config({
       },
       domain: "echo-sketch.com"
     });
+
+    await runMigrations(migrator);
 
     new sst.x.DevCommand("DbStudio", {
       link: [database],
