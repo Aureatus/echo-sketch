@@ -170,6 +170,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.3
         version: 19.1.2(@types/react@19.1.1)
+      '@vitejs/plugin-basic-ssl':
+        specifier: ^2.0.0
+        version: 2.0.0(vite@6.2.6)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@6.2.6)
@@ -3357,6 +3360,15 @@ packages:
     resolution: {integrity: sha512-EBsPjFMrFlMbbUFf9D1Fp+PAB2TwmUn7a3YtHyD9RLuTIk1jDd8SxXVAoez2Ciy+8Jsceo2MYEYZzJ/DvorOKw==}
     dependencies:
       '@types/node': 20.17.30
+    dev: true
+
+  /@vitejs/plugin-basic-ssl@2.0.0(vite@6.2.6):
+    resolution: {integrity: sha512-gc9Tjg8bUxBVSTzeWT3Njc0Cl3PakHFKdNfABnZWiUgbxqmHDEn7uECv3fHVylxoYgNzAcmU7ZrILz+BwSo3sA==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      vite: ^6.0.0
+    dependencies:
+      vite: 6.2.6
     dev: true
 
   /@vitejs/plugin-react@4.3.4(vite@6.2.6):
