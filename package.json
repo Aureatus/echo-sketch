@@ -13,7 +13,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "turbo": "^2.5.0"
+    "@types/wait-on": "^5.3.4",
+    "turbo": "^2.5.0",
+    "wait-on": "^8.0.3"
   },
   "packageManager": "pnpm@8.15.6",
   "name": "with-vite",

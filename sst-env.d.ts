@@ -5,6 +5,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "DatabaseMigrator": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
     "GeminiAPIKey": {
       "type": "sst.sst.Secret"
       "value": string
@@ -13,6 +17,20 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Function"
       "url": string
+    }
+    "MyPostgres": {
+      "clusterArn": string
+      "database": string
+      "host": string
+      "password": string
+      "port": number
+      "reader": string
+      "secretArn": string
+      "type": "sst.aws.Aurora"
+      "username": string
+    }
+    "MyVpc": {
+      "type": "sst.aws.Vpc"
     }
     "Web": {
       "type": "sst.aws.StaticSite"
