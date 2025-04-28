@@ -13,7 +13,7 @@ async function checkDockerDaemon() {
   try {
     execSync("docker ps", { stdio: 'ignore' });
   } catch (error) {
-    console.error(`\n❌ Docker daemon check failed. Please ensure Docker is running.\n   (Error: ${error.message})`);
+    console.error(`\n❌ Docker daemon check failed. Please ensure Docker is running.\n   (Error: ${error instanceof Error ? error.message : 'Unknown error'})`);
     process.exit(1);
   }
 }
@@ -152,11 +152,24 @@ export default $config({
       dev: localDbConfig 
     });
 
-    const hono = new sst.aws.Function("Hono", {
+    const cluster = new sst.aws.Cluster("MyCluster", { vpc });
+
+    const honoContainer = new sst.aws.Service("HonoContainer", {
       link: [geminiKey, database],
-      url: true,
-      handler: "apps/backend/src/index.handler",
-      vpc, 
+      cluster,
+      loadBalancer: {
+        domain: "api.echo-sketch.com",
+        rules: [
+          { listen: "80/http", redirect: "443/https" },
+          { listen: "443/https", forward: "3001/http" }
+        ]
+      },
+      dev: {
+        command: "pnpm run dev",
+      },
+      image: {
+        dockerfile: "./backend.Dockerfile",
+      },
     });
 
     const migrator = new sst.aws.Function("DatabaseMigrator", {
@@ -174,7 +187,7 @@ export default $config({
     const web = new sst.aws.StaticSite("Web", {
       path: "apps/frontend",
       environment: {
-        VITE_API_URL: hono.url
+        VITE_API_URL: $dev ? "http://localhost:3001" : honoContainer.url 
       },
       build: {
         command: "npm run build",
@@ -194,7 +207,7 @@ export default $config({
 
     return {
       web: web.url,
-      hono: hono.url
+      hono: honoContainer.url
     }
   },
 });
