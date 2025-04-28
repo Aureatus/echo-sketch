@@ -1,14 +1,12 @@
 /// <reference path="../../../sst-env.d.ts" />
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { serve } from "@hono/node-server";
 import { zValidator } from "@hono/zod-validator";
 import { generateText } from "ai";
 import { Hono } from "hono";
-import { handle } from "hono/aws-lambda";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { Resource } from "sst";
-
-// import mermaid from "mermaid"; // Mermaid seems unused now, commenting out
 import { z } from "zod";
 
 import "dotenv/config";
@@ -93,7 +91,7 @@ const app = new Hono()
 	.use(logger())
 	.use(
 		cors({
-			origin: "echo-sketch.com",
+			origin: "*",
 		}),
 	)
 	.get("/", (c) => {
@@ -152,6 +150,12 @@ const app = new Hono()
 	);
 // --- End Voice-to-Diagram Route ---
 
-export const handler = handle(app);
-
 export type AppType = typeof app;
+
+const port = 3001;
+console.log(`Server is running on port ${port}`);
+
+serve({
+	fetch: app.fetch,
+	port: port,
+});
