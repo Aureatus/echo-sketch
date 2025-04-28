@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "build": "tsc",
     "format": "biome format . --write",
     "lint": "biome lint .",
     "check": "biome check . --apply",
