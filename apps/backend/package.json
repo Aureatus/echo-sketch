@@ -7,6 +7,7 @@
     "format": "biome format . --write",
     "lint": "biome lint .",
     "check": "biome check . --apply",
+    "typecheck": "tsc --noEmit",
     "db:generate": "sst shell -- drizzle-kit generate --name",
     "db:migrate": "sst shell -- tsx src/db/migrator.ts",
     "db:studio": "sst shell -- drizzle-kit studio",

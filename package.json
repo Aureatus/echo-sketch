@@ -9,7 +9,8 @@
     "sso": "aws sso login --sso-session=alextknott",
     "sst:dev": "sst dev",
     "sst:deploy:prod": "sst deploy --stage production",
-    "sst:refresh": "sst refresh"
+    "sst:refresh": "sst refresh",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
