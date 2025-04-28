@@ -19,7 +19,6 @@
     "@hono/zod-validator": "^0.4.3",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
-    "mermaid": "^11.6.0",
     "pg": "^8.15.6"
   },
   "devDependencies": {

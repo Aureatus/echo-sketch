@@ -20,7 +20,7 @@
   "packageManager": "pnpm@8.15.6",
   "name": "with-vite",
   "dependencies": {
-    "@excalidraw/excalidraw": "^0.18.0",
+    "@excalidraw/excalidraw": "next",
     "ai": "^4.3.5",
     "hono": "^4.7.6",
     "mermaid": "^11.6.0",
