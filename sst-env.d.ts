@@ -13,9 +13,9 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "Hono": {
-      "name": string
-      "type": "sst.aws.Function"
+    "HonoContainer": {
+      "service": string
+      "type": "sst.aws.Service"
       "url": string
     }
     "MyPostgres": {
