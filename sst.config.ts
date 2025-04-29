@@ -13,11 +13,7 @@ async function checkDockerDaemon() {
   try {
     execSync("docker ps", { stdio: 'ignore' });
   } catch (error) {
-<<<<<<< HEAD
-    console.error(`\n❌ Docker daemon check failed. Please ensure Docker is running.\n   (Error: ${error.message})`);
-=======
     console.error(`\n❌ Docker daemon check failed. Please ensure Docker is running.\n   (Error: ${error instanceof Error ? error.message : 'Unknown error'})`);
->>>>>>> main
     process.exit(1);
   }
 }
