@@ -15,6 +15,12 @@ import "dotenv/config";
 // // Using a basic config. Adjust if needed for specific parsing features.
 // mermaid.initialize({});
 
+type AppEnv = {
+	Variables: {
+		userId: string;
+	};
+};
+
 async function generateDiagram(
 	userInstruction: string,
 	existingDiagram: string | undefined,
@@ -87,20 +93,32 @@ const transcribeSchema = z.object({
 	existingDiagramCode: z.string().optional(),
 });
 
-const app = new Hono()
+const app = new Hono<AppEnv>()
 	.use(logger())
 	.use(
 		cors({
-			origin: "*",
+			origin: [
+				"http://localhost:3000",
+				"https://localhost:3000",
+				"https://echo-sketch.com",
+			],
+			allowHeaders: ["Content-Type", "X-User-ID"],
 		}),
 	)
+	.use("*", async (c, next) => {
+		const userId = c.req.header("X-User-ID");
+		if (!userId) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+		c.set("userId", userId);
+		await next();
+	})
 	.get("/", (c) => {
 		return c.text("Hello Hono!");
 	})
 	.post("/draw", zValidator("json", drawSchema), async (c) => {
 		try {
 			const { instruction, existingDiagramCode } = c.req.valid("json");
-
 			const cleanText = await generateDiagram(instruction, existingDiagramCode);
 			return c.json({ diagram: cleanText, instruction });
 		} catch (error) {
