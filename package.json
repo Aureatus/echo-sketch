@@ -9,7 +9,8 @@
     "sso": "aws sso login --sso-session=alextknott",
     "sst:dev": "sst dev",
     "sst:deploy:prod": "sst deploy --stage production",
-    "sst:refresh": "sst refresh"
+    "sst:refresh": "sst refresh",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -20,11 +21,12 @@
   "packageManager": "pnpm@8.15.6",
   "name": "with-vite",
   "dependencies": {
-    "@excalidraw/excalidraw": "^0.18.0",
+    "@excalidraw/excalidraw": "next",
     "ai": "^4.3.5",
     "hono": "^4.7.6",
     "mermaid": "^11.6.0",
     "sst": "3.13.10",
+    "typescript": "^5.8.3",
     "zod": "^3.24.2"
   }
 }

@@ -1,0 +1,31 @@
+# Ignore Git files
+.git
+.gitignore
+
+# Ignore Node dependency directories (pnpm will install them within Docker)
+**/node_modules
+
+# Ignore build outputs / caches
+**/dist
+**/build
+.turbo
+.sst
+
+# Ignore Docker related files
+Dockerfile
+*.Dockerfile
+.dockerignore
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE/editor folders
+.vscode
+.idea
+
+# Ignore local environment files (should be injected at runtime)
+.env*
+
+# Ignore logs
+*.log 
