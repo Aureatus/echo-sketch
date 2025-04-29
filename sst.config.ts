@@ -165,7 +165,8 @@ export default $config({
         ]
       },
       dev: {
-        command: "pnpm run dev",
+        command: "pnpm exec tsx src/index.ts",
+        directory: "apps/backend",
       },
       image: {
         dockerfile: "./backend.Dockerfile",
