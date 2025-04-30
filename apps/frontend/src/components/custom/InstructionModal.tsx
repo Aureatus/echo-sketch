@@ -18,6 +18,7 @@ interface InstructionModalProps {
 	onDiagramGenerated: (payload: {
 		response: DiagramResponse;
 		elements: unknown[];
+		originalPayload: DrawMutationPayload;
 	}) => void;
 	existingDiagramCode?: string;
 }
@@ -45,7 +46,7 @@ export function InstructionModal({
 		setIsLoading(true);
 		try {
 			const { response, elements } = await generateDiagramText(payload);
-			onDiagramGenerated({ response, elements });
+			onDiagramGenerated({ response, elements, originalPayload: payload });
 			setInstruction("");
 			onOpenChange(false);
 		} catch (error: unknown) {
