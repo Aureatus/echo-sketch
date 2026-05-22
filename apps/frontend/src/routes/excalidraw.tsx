@@ -16,9 +16,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
+	DrawMutationPayload,
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { useMutation } from "@tanstack/react-query";
 import mermaid from "mermaid";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -95,11 +97,9 @@ function DrawRouteComponent() {
 	const [lastVoicePayload, setLastVoicePayload] =
 		useState<VoiceToDiagramMutationPayload | null>(null);
 	const [newVersionKey, setNewVersionKey] = useState(0);
-	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
 	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
-	// State Update Handlers
 	const showDiff = useCallback(
 		(response: DiagramResponse, elements: ElementsType) => {
 			setOldElements(currentElements);
@@ -107,32 +107,45 @@ function DrawRouteComponent() {
 			setLastResponse(response);
 			setNewVersionKey((k) => k + 1);
 			setIsModalOpen(false);
-			if (!("audioBlob" in response)) {
-				setLastVoicePayload(null);
-			}
 		},
 		[currentElements],
 	);
 
+	const mutationVoice = useMutation({
+		mutationFn: generateDiagramVoice,
+		onSuccess: (result) => {
+			toast.success("Diagram generated from voice");
+			showDiff(result.response, result.elements as ElementsType);
+		},
+		onError: (error) => {
+			toast.error("Voice-to-Diagram Failed", { description: error.message });
+			setLastVoicePayload(null);
+		},
+	});
+
+	const mutationText = useMutation({
+		mutationFn: generateDiagramText,
+		onSuccess: (result) => {
+			toast.success("Diagram generated from text");
+			showDiff(result.response, result.elements as ElementsType);
+			setLastVoicePayload(null);
+		},
+		onError: (error) => {
+			toast.error("Diagram Generation Failed", { description: error.message });
+		},
+	});
+
 	const approve = useCallback(() => {
 		if (newElements && lastResponse) {
 			const timestamp = Date.now();
-			setCurrentElements(newElements);
 			addHistory({ ...lastResponse, timestamp });
 			setSelectedTimestamp(timestamp);
-			setMermaidCode(lastResponse.diagram || mermaidCode);
 		}
 		setNewElements(null);
 		setOldElements(null);
 		setLastResponse(null);
 		setLastVoicePayload(null);
-	}, [
-		newElements,
-		lastResponse,
-		addHistory,
-		setSelectedTimestamp,
-		mermaidCode,
-	]);
+	}, [newElements, lastResponse, addHistory, setSelectedTimestamp]);
 
 	const decline = useCallback(() => {
 		setNewElements(null);
@@ -141,88 +154,51 @@ function DrawRouteComponent() {
 		setLastVoicePayload(null);
 	}, []);
 
-	const retry = useCallback(async () => {
+	const retry = useCallback(() => {
 		const codeForRetryContext = mermaidCode;
-
-		console.log("draw retry", {
-			lastVoicePayload,
-			lastResponse,
-			codeForRetryContext,
-		});
-
 		if (lastVoicePayload) {
-			const toastId = toast.loading("Regenerating diagram (voice)...");
-			try {
-				const { response, elements } = await generateDiagramVoice({
-					...lastVoicePayload,
-					existingDiagramCode: codeForRetryContext,
-				});
-				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				setNewElements(elements);
-				setNewVersionKey((k) => k + 1);
-				setLastResponse(response);
-			} catch (error) {
-				console.error("Voice retry failed:", error);
-				toast.error("Voice retry failed", { id: toastId });
-			}
-			return;
+			const payload = {
+				...lastVoicePayload,
+				existingDiagramCode: codeForRetryContext,
+			};
+			mutationVoice.mutate(payload);
+		} else if (lastResponse) {
+			const payload: DrawMutationPayload = {
+				instruction: `${lastResponse.instruction}\n\nPlease regenerate with slight variations`,
+				existingDiagramCode: codeForRetryContext,
+			};
+			mutationText.mutate(payload);
 		}
-		if (lastResponse) {
-			const toastId = toast.loading("Regenerating diagram (text)...");
-			try {
-				const { response, elements } = await generateDiagramText({
-					instruction: `${lastResponse.instruction}\n\nPlease regenerate with slight variations`,
-					existingDiagramCode: codeForRetryContext,
-				});
-				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				setNewElements(elements);
-				setNewVersionKey((k) => k + 1);
-				setLastResponse(response);
-			} catch (error) {
-				console.error("Text retry failed:", error);
-				toast.error("Retry failed", { id: toastId });
-			}
-		}
-	}, [mermaidCode, lastVoicePayload, lastResponse]);
+	}, [
+		mermaidCode,
+		lastVoicePayload,
+		lastResponse,
+		mutationVoice,
+		mutationText,
+	]);
 
 	const handleInstructionGenerated = useCallback(
 		({
 			response,
 			elements,
 		}: { response: DiagramResponse; elements: ElementsType }) => {
+			toast.success("Diagram generated from text (via modal)");
 			showDiff(response, elements);
 			setLastVoicePayload(null);
 		},
 		[showDiff],
 	);
 
-	// Voice Stop Handler
 	const handleVoiceStop = useCallback(
-		async (_blobUrl: string, blob: Blob) => {
+		(_blobUrl: string, blob: Blob) => {
 			const payload: VoiceToDiagramMutationPayload = {
 				audioBlob: blob,
 				existingDiagramCode: mermaidCode,
 			};
 			setLastVoicePayload(payload);
-			const toastId = toast.loading("Generating diagram from voice...");
-			setIsVoiceLoading(true);
-			try {
-				const { response, elements } = await generateDiagramVoice(payload);
-				toast.success("Diagram generated", { id: toastId, duration: 1000 });
-				showDiff(response, elements);
-			} catch (error: unknown) {
-				const msg = error instanceof Error ? error.message : String(error);
-				console.error("Voice-to-Diagram Failed:", error);
-				toast.error("Voice-to-Diagram Failed", {
-					id: toastId,
-					description: msg,
-				});
-				setLastVoicePayload(null);
-			} finally {
-				setIsVoiceLoading(false);
-			}
+			mutationVoice.mutate(payload);
 		},
-		[mermaidCode, showDiff],
+		[mermaidCode, mutationVoice],
 	);
 
 	// Now call the hook that uses handleVoiceStop
@@ -289,7 +265,7 @@ function DrawRouteComponent() {
 						startRecording={startRecording}
 						stopRecording={stopRecording}
 						micStatus={micStatus}
-						isVoiceLoading={isVoiceLoading}
+						isVoiceLoading={mutationVoice.isPending}
 					/>
 					<SidebarModal open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
 						<HistorySidebar

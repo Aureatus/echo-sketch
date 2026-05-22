@@ -9,8 +9,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { generateDiagramText, generateDiagramVoice } from "@/lib/diagramFlow";
 import type {
 	DiagramResponse,
+	DrawMutationPayload,
 	VoiceToDiagramMutationPayload,
 } from "@/lib/queries";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import mermaid from "mermaid";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -69,8 +71,161 @@ export const Route = createFileRoute("/mermaid")({
 function MermaidRouteComponent() {
 	const { initialDiagram } = useLoaderData({ from: "/mermaid", strict: true });
 	const { resolvedTheme } = useTheme();
+
+	const [mermaidCode, setMermaidCode] = useState<string>(initialDiagram);
+	const [newCode, setNewCode] = useState<string | null>(null);
+	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
+		null,
+	);
+	const [lastVoicePayload, setLastVoicePayload] =
+		useState<VoiceToDiagramMutationPayload | null>(null);
+	const [lastTextPayload, setLastTextPayload] =
+		useState<DrawMutationPayload | null>(null);
+	const [newVersionKey, setNewVersionKey] = useState(0);
+	const { history, addHistory } = usePersistedHistory("mermaidHistory");
+	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
+		history,
+		"mermaidHistorySelection",
+	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+	const currentRef = useRef<HTMLDivElement>(null);
+	const newRef = useRef<HTMLDivElement>(null);
+
+	const showDiff = useCallback(
+		(
+			response: DiagramResponse,
+			sourcePayload: VoiceToDiagramMutationPayload | DrawMutationPayload,
+		) => {
+			setNewCode(response.diagram);
+			setLastResponse(response);
+			setNewVersionKey((k) => k + 1);
+			setIsModalOpen(false);
+
+			if ("audioBlob" in sourcePayload) {
+				setLastVoicePayload(sourcePayload);
+				setLastTextPayload(null);
+			} else {
+				setLastTextPayload(sourcePayload);
+				setLastVoicePayload(null);
+			}
+		},
+		[],
+	);
+
+	const handleModalDiagramGenerated = useCallback(
+		({
+			response,
+			originalPayload,
+		}: {
+			response: DiagramResponse;
+			elements: unknown[];
+			originalPayload: DrawMutationPayload;
+		}) => {
+			toast.success("Diagram generated from text (via modal)");
+			showDiff(response, originalPayload);
+		},
+		[showDiff],
+	);
+
+	const approve = useCallback(() => {
+		if (newCode && lastResponse) {
+			const timestamp = Date.now();
+			addHistory({ ...lastResponse, timestamp: timestamp });
+			setSelectedTimestamp(timestamp);
+			setMermaidCode(newCode);
+		}
+		setNewCode(null);
+		setLastResponse(null);
+		setLastVoicePayload(null);
+		setLastTextPayload(null);
+	}, [newCode, lastResponse, addHistory, setSelectedTimestamp]);
+
+	const decline = useCallback(() => {
+		setNewCode(null);
+		setLastResponse(null);
+		setLastVoicePayload(null);
+		setLastTextPayload(null);
+	}, []);
+
+	const mutationVoice = useMutation({
+		mutationFn: (payload: VoiceToDiagramMutationPayload) =>
+			generateDiagramVoice(payload).then(({ response }) => ({
+				response,
+				payload,
+			})),
+		onSuccess: ({ response, payload }) => {
+			toast.success("Diagram generated from voice");
+			showDiff(response, payload);
+		},
+		onError: (error) => {
+			toast.error("Voice-to-Diagram Failed", { description: error.message });
+			setLastVoicePayload(null);
+		},
+	});
+
+	const mutationText = useMutation({
+		mutationFn: (payload: DrawMutationPayload) =>
+			generateDiagramText(payload).then(({ response }) => ({
+				response,
+				payload,
+			})),
+		onSuccess: ({ response, payload }) => {
+			toast.success("Diagram generated from text");
+			showDiff(response, payload);
+		},
+		onError: (error) => {
+			toast.error("Diagram Generation Failed", { description: error.message });
+			setLastTextPayload(null);
+		},
+	});
+
+	const retry = useCallback(async () => {
+		const codeToUseForRetry = mermaidCode;
+
+		console.log("mermaid retry", {
+			lastVoicePayload,
+			lastTextPayload,
+			codeToUseForRetry,
+		});
+		if (lastVoicePayload) {
+			const payload = {
+				...lastVoicePayload,
+				existingDiagramCode: codeToUseForRetry,
+			};
+			mutationVoice.mutate(payload);
+		} else if (lastTextPayload) {
+			const payload = {
+				...lastTextPayload,
+				instruction: `${lastTextPayload.instruction}\n\nPlease regenerate with slight variations`,
+				existingDiagramCode: codeToUseForRetry,
+			};
+			mutationText.mutate(payload);
+		} else {
+			toast.error("Cannot retry", {
+				description: "No previous voice or text generation attempt found.",
+			});
+		}
+	}, [
+		mermaidCode,
+		lastVoicePayload,
+		lastTextPayload,
+		mutationVoice,
+		mutationText,
+	]);
+
+	const handleVoiceStop = useCallback(
+		(_blobUrl: string, blob: Blob) => {
+			const payload: VoiceToDiagramMutationPayload = {
+				audioBlob: blob,
+				existingDiagramCode: mermaidCode,
+			};
+			mutationVoice.mutate(payload);
+		},
+		[mermaidCode, mutationVoice],
+	);
+
 	const {
 		status: micStatus,
 		startRecording,
@@ -81,53 +236,14 @@ function MermaidRouteComponent() {
 			noiseSuppression: true,
 			autoGainControl: true,
 		},
-		onStop: async (_blobUrl, blob) => {
-			const payload: VoiceToDiagramMutationPayload = {
-				audioBlob: blob,
-				existingDiagramCode: mermaidCode,
-			};
-			setLastVoicePayload(payload);
-			try {
-				setIsVoiceLoading(true);
-				const { response } = await generateDiagramVoice(payload);
-				setNewCode(response.diagram);
-				setLastResponse(response);
-				setIsModalOpen(false);
-			} catch (error: unknown) {
-				const msg = error instanceof Error ? error.message : String(error);
-				toast.error("Voice-to-Diagram Failed", { description: msg });
-			} finally {
-				setIsVoiceLoading(false);
-			}
-		},
+		onStop: handleVoiceStop,
 	});
 
-	const [mermaidCode, setMermaidCode] = useState<string>(initialDiagram);
-	const [newCode, setNewCode] = useState<string | null>(null);
-	const [lastResponse, setLastResponse] = useState<DiagramResponse | null>(
-		null,
-	);
-	const [lastVoicePayload, setLastVoicePayload] =
-		useState<VoiceToDiagramMutationPayload | null>(null);
-	const [newVersionKey, setNewVersionKey] = useState(0);
-	const { history, addHistory } = usePersistedHistory("mermaidHistory");
-	const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-	const [selectedTimestamp, setSelectedTimestamp] = usePersistedSelection(
-		history,
-		"mermaidHistorySelection",
-	);
-
-	const currentRef = useRef<HTMLDivElement>(null);
-	const newRef = useRef<HTMLDivElement>(null);
-
-	// Effect to update Mermaid theme ONLY
 	useEffect(() => {
 		mermaid.initialize({
 			startOnLoad: false,
 			theme: resolvedTheme === "dark" ? "dark" : "default",
 		});
-		// Re-render current diagram after theme change by triggering its effect
-		// This ensures the diagram adopts the new theme settings visually
 		renderMermaidDiagram(
 			currentRef.current,
 			mermaidCode,
@@ -144,7 +260,6 @@ function MermaidRouteComponent() {
 		}
 	}, [resolvedTheme, mermaidCode, newCode, newVersionKey]);
 
-	// Effect to render the "Current" diagram when code changes
 	useEffect(() => {
 		renderMermaidDiagram(
 			currentRef.current,
@@ -152,9 +267,8 @@ function MermaidRouteComponent() {
 			"mermaid-current",
 			"main",
 		);
-	}, [mermaidCode]); // Depends on the code
+	}, [mermaidCode]);
 
-	// Effect to render the "New" diagram when new code/key changes
 	useEffect(() => {
 		if (newCode) {
 			renderMermaidDiagram(
@@ -164,129 +278,42 @@ function MermaidRouteComponent() {
 				newVersionKey,
 			);
 		} else if (newRef.current) {
-			newRef.current.innerHTML = ""; // Clear if newCode is null
+			newRef.current.innerHTML = "";
 		}
-	}, [newCode, newVersionKey]); // Depends on new code and its version
+	}, [newCode, newVersionKey]);
 
-	// Effect to load code from history or selection changes
 	useEffect(() => {
 		if (history.length === 0) {
-			setMermaidCode(""); // Set to empty if no history
-			// Clear diff state
+			setMermaidCode("");
 			setNewCode(null);
 			setLastResponse(null);
 			setLastVoicePayload(null);
+			setLastTextPayload(null);
 			return;
 		}
 
-		// Determine the target timestamp (selected or latest)
 		const ts = selectedTimestamp ?? history[history.length - 1].timestamp;
 		const item = history.find((i) => i.timestamp === ts);
 
 		if (item) {
-			setMermaidCode(item.diagram); // Update the current code state
-			// Clear any pending diff when loading from history
+			setMermaidCode(item.diagram);
 			setNewCode(null);
 			setLastResponse(null);
 			setLastVoicePayload(null);
+			setLastTextPayload(null);
 		} else {
-			// Fallback if timestamp not found (e.g., history cleared externally)
 			const lastItem = history[history.length - 1];
 			if (lastItem) {
-				// Check if lastItem exists
 				setMermaidCode(lastItem.diagram);
 				setNewCode(null);
 				setLastResponse(null);
 				setLastVoicePayload(null);
+				setLastTextPayload(null);
 			} else {
-				setMermaidCode(""); // Set empty if history somehow became empty
+				setMermaidCode("");
 			}
 		}
-	}, [history, selectedTimestamp]); // Correct dependencies
-
-	// Update approve callback to set the current code
-	const approve = useCallback(() => {
-		if (newCode && lastResponse) {
-			const timestamp = Date.now();
-			addHistory({ ...lastResponse, timestamp: timestamp });
-			setSelectedTimestamp(timestamp);
-			setMermaidCode(newCode); // Set current code to the approved code
-		}
-		setNewCode(null);
-		setLastResponse(null);
-		setLastVoicePayload(null);
-	}, [newCode, lastResponse, addHistory, setSelectedTimestamp]); // Removed setMermaidCode from deps, relies on newCode
-
-	const decline = useCallback(() => {
-		// Wrap in useCallback
-		setNewCode(null);
-		setLastResponse(null);
-		setLastVoicePayload(null); // Clear voice payload on decline
-	}, []); // No dependencies needed
-
-	const retry = useCallback(async () => {
-		// Wrap in useCallback
-		// Keep existing mermaidCode in 'Current' view
-		const codeToUseForRetry = mermaidCode; // Use the currently displayed code for context
-
-		console.log("mermaid retry", {
-			lastVoicePayload,
-			lastResponse,
-			codeToUseForRetry,
-		});
-		if (lastVoicePayload) {
-			const toastId = toast.loading("Regenerating diagram (voice)...");
-			try {
-				const payload = {
-					...lastVoicePayload,
-					existingDiagramCode: codeToUseForRetry,
-				};
-				const { response } = await generateDiagramVoice(payload);
-				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				// Don't change oldCode here, keep the current view stable
-				setNewCode(response.diagram);
-				setNewVersionKey((k) => k + 1);
-				setLastResponse(response);
-			} catch (error) {
-				console.error("Voice retry failed:", error);
-				toast.error("Voice retry failed, try text instruction?", {
-					id: toastId,
-				});
-				// Maybe clear lastVoicePayload here if voice consistently fails?
-			}
-			return;
-		}
-		console.log("mermaid text retry", { lastResponse, codeToUseForRetry });
-		if (lastResponse) {
-			const toastId = toast.loading("Regenerating diagram (text)...");
-			try {
-				const { response } = await generateDiagramText({
-					instruction: `${lastResponse.instruction}\n\nPlease regenerate with slight variations`,
-					existingDiagramCode: codeToUseForRetry, // Provide context
-				});
-				toast.success("Diagram regenerated", { id: toastId, duration: 1000 });
-				// Don't change oldCode here
-				setNewCode(response.diagram);
-				setNewVersionKey((k) => k + 1);
-				setLastResponse(response); // Update lastResponse for potential further text retries
-			} catch (error) {
-				console.error("Text retry failed:", error);
-				toast.error("Retry failed", { id: toastId });
-			}
-		}
-	}, [lastVoicePayload, lastResponse, mermaidCode]); // Add dependencies
-
-	const handleInstructionGenerated = useCallback(
-		({ response }: { response: DiagramResponse }) => {
-			// Keep existing mermaidCode in 'Current' view
-			setNewCode(response.diagram);
-			setLastResponse(response);
-			setLastVoicePayload(null); // Clear voice payload as this came from text
-			setIsModalOpen(false);
-			setNewVersionKey((k) => k + 1); // Ensure new diagram renders
-		},
-		[],
-	); // Add dependencies if needed, currently none
+	}, [history, selectedTimestamp]);
 
 	return (
 		<div className="flex flex-col md:flex-row h-full">
@@ -298,7 +325,7 @@ function MermaidRouteComponent() {
 						startRecording={startRecording}
 						stopRecording={stopRecording}
 						micStatus={micStatus}
-						isVoiceLoading={isVoiceLoading}
+						isVoiceLoading={mutationVoice.isPending}
 					/>
 					<SidebarModal open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
 						<HistorySidebar
@@ -330,7 +357,7 @@ function MermaidRouteComponent() {
 				<InstructionModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
-					onDiagramGenerated={handleInstructionGenerated}
+					onDiagramGenerated={handleModalDiagramGenerated}
 					existingDiagramCode={mermaidCode}
 				/>
 			</main>

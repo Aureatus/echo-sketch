@@ -3,17 +3,28 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { serve } from "@hono/node-server";
 import { zValidator } from "@hono/zod-validator";
 import { generateText } from "ai";
+import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { Resource } from "sst";
 import { z } from "zod";
 
+import db from "./db/index.js";
+import type { diagramTypeEnum } from "./db/schema.js";
+import { diagrams } from "./db/schema.js";
+
 import "dotenv/config";
 
 // // Initialize mermaid (needed for parsing)
 // // Using a basic config. Adjust if needed for specific parsing features.
 // mermaid.initialize({});
+
+type AppEnv = {
+	Variables: {
+		userId: string;
+	};
+};
 
 async function generateDiagram(
 	userInstruction: string,
@@ -79,7 +90,6 @@ const drawSchema = z.object({
 	existingDiagramCode: z.string().optional(),
 });
 
-// Zod schema for transcription input (form data)
 const transcribeSchema = z.object({
 	audio: z
 		.instanceof(File)
@@ -87,28 +97,90 @@ const transcribeSchema = z.object({
 	existingDiagramCode: z.string().optional(),
 });
 
-const app = new Hono()
+async function saveOrUpdateDiagram(payload: {
+	userId: string;
+	diagramCode: string;
+	instruction: string | null;
+	diagramType: (typeof diagramTypeEnum.enumValues)[number];
+}) {
+	const { userId, diagramCode, instruction, diagramType } = payload;
+
+	const [savedDiagram] = await db
+		.insert(diagrams)
+		.values({
+			userId: userId,
+			mermaidCode: diagramCode,
+			instruction: instruction,
+			diagramType: diagramType,
+		})
+		.onConflictDoUpdate({
+			target: [diagrams.userId, diagrams.diagramType],
+			set: {
+				mermaidCode: diagramCode,
+				instruction: instruction,
+				updatedAt: sql`CURRENT_TIMESTAMP`,
+			},
+		})
+		.returning({ id: diagrams.id });
+
+	return savedDiagram;
+}
+
+const app = new Hono<AppEnv>()
 	.use(logger())
 	.use(
 		cors({
-			origin: "*",
+			origin: [
+				"http://localhost:3000",
+				"https://localhost:3000",
+				"https://echo-sketch.com",
+			],
+			allowHeaders: ["Content-Type", "X-User-ID"],
 		}),
 	)
+	.use("*", async (c, next) => {
+		const userId = c.req.header("X-User-ID");
+		if (!userId) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+		c.set("userId", userId);
+		await next();
+	})
 	.get("/", (c) => {
 		return c.text("Hello Hono!");
 	})
 	.post("/draw", zValidator("json", drawSchema), async (c) => {
 		try {
 			const { instruction, existingDiagramCode } = c.req.valid("json");
+			const userId = c.get("userId");
 
-			const cleanText = await generateDiagram(instruction, existingDiagramCode);
-			return c.json({ diagram: cleanText, instruction });
+			const mermaidCode = await generateDiagram(
+				instruction,
+				existingDiagramCode,
+			);
+
+			const savedDiagram = await saveOrUpdateDiagram({
+				userId,
+				diagramCode: mermaidCode,
+				instruction,
+				diagramType: "mermaid",
+			});
+
+			console.log(
+				`User [${userId}] saved/updated diagram [${savedDiagram.id}]`,
+			);
+
+			return c.json({
+				diagramId: savedDiagram.id,
+				diagram: mermaidCode,
+				instruction,
+			});
 		} catch (error) {
-			console.error("Error generating diagram:", error);
+			console.error("Error in /draw endpoint:", error);
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
 			return c.json(
-				{ error: `Failed to generate diagram: ${errorMessage}` },
+				{ error: `Failed to draw or save diagram: ${errorMessage}` },
 				500,
 			);
 		}
@@ -119,17 +191,33 @@ const app = new Hono()
 		async (c) => {
 			try {
 				const { audio: audioFile, existingDiagramCode } = c.req.valid("form");
+				const userId = c.get("userId");
 				const audioBuffer = await audioFile.arrayBuffer();
 
 				const transcript = await speechToText(audioBuffer, audioFile.type);
-
 				console.log("Transcript for diagram:", transcript);
 
-				const cleanDiagram = await generateDiagram(
+				const mermaidCode = await generateDiagram(
 					transcript,
 					existingDiagramCode,
 				);
-				return c.json({ diagram: cleanDiagram, instruction: transcript });
+
+				const savedDiagram = await saveOrUpdateDiagram({
+					userId,
+					diagramCode: mermaidCode,
+					instruction: transcript,
+					diagramType: "mermaid",
+				});
+
+				console.log(
+					`User [${userId}] saved/updated diagram [${savedDiagram.id}] from voice`,
+				);
+
+				return c.json({
+					diagramId: savedDiagram.id,
+					diagram: mermaidCode,
+					instruction: transcript,
+				});
 			} catch (error) {
 				if (error instanceof z.ZodError) {
 					console.error("Validation Error (voice-to-diagram):", error.errors);
@@ -148,7 +236,6 @@ const app = new Hono()
 			}
 		},
 	);
-// --- End Voice-to-Diagram Route ---
 
 export type AppType = typeof app;
 
